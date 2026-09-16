@@ -1,0 +1,3904 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MANA CINEMA Admin Panel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css"
+    />
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
+    
+    <style>
+      :root {
+        --primary-color: #e50914;
+        --primary-hover: #f40612;
+        --gradient: linear-gradient(90deg, #e50914 0%, #b80d14 100%);
+        --bg-main: #000000;
+        --bg-content: #0a0a0a;
+        --bg-input: #1f1f1f;
+        --border-color: #2a2a2a;
+        --text-primary: #ffffff;
+        --text-secondary: #b3b3b3;
+        --sidebar-width: 260px;
+        --success-color: #2e7d32;
+        --warning-color: #f57c00;
+      }
+
+      /* --- AUTH UI STYLES --- */
+      #auth-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background-color: #000; z-index: 9999;
+        display: flex; justify-content: center; align-items: center; padding: 20px;
+      }
+      .auth-box {
+        background: rgba(0, 0, 0, 0.75); padding: 40px; border-radius: 8px;
+        width: 100%; max-width: 400px; border: 1px solid var(--border-color);
+        box-shadow: 0 0 20px rgba(229, 9, 20, 0.2);
+      }
+      .auth-box h2 { font-size: 30px; margin-bottom: 25px; font-weight: 700; text-align: center; color: var(--primary-color); }
+      .auth-input-group { margin-bottom: 20px; position: relative; }
+      .auth-input-group input {
+        width: 100%; padding: 15px; background: #333; border: none; border-radius: 4px;
+        color: white; font-size: 16px; outline: none;
+      }
+      .auth-input-group i { position: absolute; right: 15px; top: 18px; color: var(--text-secondary); cursor: pointer; }
+      .auth-btn {
+        width: 100%; padding: 15px; background: var(--primary-color); color: white;
+        border: none; border-radius: 4px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 10px;
+      }
+      .auth-btn:disabled { background: #555; cursor: not-allowed; }
+      .auth-footer { margin-top: 15px; text-align: center; }
+      .auth-footer a { color: var(--text-secondary); text-decoration: none; font-size: 14px; cursor: pointer; }
+      .auth-footer a:hover { text-decoration: underline; }
+
+      #admin-main-ui { display: none; } /* Hidden until auth */
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Poppins", sans-serif;
+      }
+      body {
+        background-color: var(--bg-main);
+        color: var(--text-primary);
+        display: flex;
+      }
+      .sidebar {
+        width: var(--sidebar-width);
+        background-color: #000;
+        height: 100vh;
+        position: fixed;
+        top: 0;
+        left: 0;
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid var(--border-color);
+        z-index: 1100;
+        transition: transform 0.3s ease-in-out;
+      }
+      .sidebar-header {
+        text-align: center;
+        padding: 25px 15px;
+        margin-bottom: 20px;
+      }
+      .sidebar-header h1 {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--primary-color);
+        letter-spacing: 1px;
+      }
+
+      .nav-menu {
+        list-style: none;
+        padding: 0 15px;
+        flex-grow: 1;
+        overflow-y: auto;
+        padding-bottom: 20px;
+      }
+      .nav-menu::-webkit-scrollbar {
+        width: 5px;
+      }
+      .nav-menu::-webkit-scrollbar-thumb {
+        background: #333;
+        border-radius: 5px;
+      }
+
+      .nav-item a {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        transition:
+          background-color 0.3s,
+          color 0.3s;
+        font-weight: 500;
+        position: relative;
+      }
+      .nav-item a:hover {
+        background-color: var(--bg-input);
+        color: var(--text-primary);
+      }
+      .nav-item a.active {
+        background: var(--gradient);
+        color: var(--text-primary);
+        box-shadow: 0 4px 15px rgba(229, 9, 20, 0.3);
+      }
+      .nav-item a i {
+        width: 30px;
+        font-size: 18px;
+      }
+      .nav-badge {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        background-color: var(--primary-color);
+        color: white;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        font-size: 12px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0 10px rgba(229, 9, 20, 0.5);
+      }
+      .main-content {
+        margin-left: var(--sidebar-width);
+        flex-grow: 1;
+        padding: 30px;
+        width: calc(100% - var(--sidebar-width));
+      }
+      .main-header {
+        display: none;
+      }
+      .mobile-logo {
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        margin-left: 15px;
+        color: var(--text-primary);
+      }
+      .mobile-logo .text-primary {
+        color: var(--primary-color);
+      }
+      .view {
+        display: none;
+      }
+      .view.active {
+        display: block;
+        animation: fadeIn 0.5s ease;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      .view-header {
+        font-size: 32px;
+        font-weight: 600;
+        margin-bottom: 25px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--border-color);
+      }
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 25px;
+      }
+      .stat-card {
+        background-color: var(--bg-content);
+        padding: 25px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        border: 1px solid var(--border-color);
+        position: relative;
+        overflow: hidden;
+      }
+      .stat-card-icon {
+        font-size: 36px;
+        color: var(--primary-color);
+        background: rgba(229, 9, 20, 0.1);
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .stat-card-info h3 {
+        font-size: 32px;
+        font-weight: 700;
+      }
+      .stat-card-info p {
+        font-size: 14px;
+        color: var(--text-secondary);
+      }
+
+      /* New Analytics Styles */
+      .stat-card.revenue {
+        border-left: 4px solid #2e7d32;
+      }
+      .stat-card.revenue .stat-card-icon {
+        color: #2e7d32;
+        background: rgba(46, 125, 50, 0.1);
+      }
+      .stat-card.premium {
+        border-left: 4px solid #f57c00;
+      }
+      .stat-card.premium .stat-card-icon {
+        color: #f57c00;
+        background: rgba(245, 124, 0, 0.1);
+      }
+
+      .movie-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 25px;
+      }
+      .movie-card {
+        background-color: var(--bg-content);
+        border-radius: 8px;
+        overflow: hidden;
+        position: relative;
+        cursor: pointer;
+        transition:
+          transform 0.3s ease,
+          box-shadow 0.3s ease;
+      }
+      .movie-card:hover {
+        transform: scale(1.05);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+      }
+      .movie-card img {
+        width: 100%;
+        height: 300px;
+        object-fit: cover;
+        display: block;
+      }
+      .movie-card-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          to top,
+          rgba(0, 0, 0, 0.9) 20%,
+          transparent 60%
+        );
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+      .movie-card:hover .movie-card-overlay {
+        opacity: 1;
+      }
+      .movie-card-info {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        right: 10px;
+        color: var(--text-primary);
+      }
+      .movie-card-info h3 {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+      .movie-card-info p {
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+      .movie-card-actions {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        display: flex;
+        gap: 8px;
+        opacity: 0;
+        transform: translateY(-10px);
+        transition:
+          opacity 0.3s ease,
+          transform 0.3s ease;
+      }
+      .movie-card:hover .movie-card-actions {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .btn-icon {
+        background: rgba(20, 20, 20, 0.7);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        transition: background-color 0.2s;
+      }
+      .btn-icon:hover {
+        background: var(--primary-color);
+      }
+      .btn-sm {
+        padding: 8px 15px;
+        font-size: 14px;
+        font-weight: 500;
+        background: var(--bg-input);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .btn-sm:hover {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+      }
+
+      .btn-sm.ban-btn {
+        background: #c62828;
+        color: white;
+        border-color: #c62828;
+      }
+      .btn-sm.ban-btn:hover {
+        background: #b71c1c;
+      }
+      .btn-sm.unban-btn {
+        background: #2e7d32;
+        color: white;
+        border-color: #2e7d32;
+      }
+      .btn-sm.unban-btn:hover {
+        background: #1b5e20;
+      }
+
+      .form-container {
+        max-width: 700px;
+        background-color: var(--bg-content);
+        padding: 30px;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+      }
+      .form-group {
+        margin-bottom: 20px;
+      }
+      .form-group label {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+        color: var(--text-secondary);
+        font-size: 14px;
+        font-weight: 500;
+      }
+      .form-group label i {
+        color: var(--text-secondary);
+        width: 16px;
+        text-align: center;
+      }
+      .form-group input,
+      .form-group select,
+      .form-group textarea {
+        width: 100%;
+        padding: 12px;
+        background-color: var(--bg-input);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        color: var(--text-primary);
+        font-size: 14px;
+        transition:
+          border-color 0.3s,
+          box-shadow 0.3s;
+      }
+      .form-group input:focus,
+      .form-group select:focus,
+      .form-group textarea:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.2);
+      }
+      .form-group textarea {
+        resize: vertical;
+        min-height: 100px;
+      }
+
+      /* NEW MULTI-CATEGORY STYLES */
+      .category-checkbox-wrapper {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 10px;
+        background: var(--bg-input);
+        padding: 15px;
+        border-radius: 6px;
+        border: 1px solid var(--border-color);
+        max-height: 200px;
+        overflow-y: auto;
+      }
+      .category-checkbox-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        font-size: 13px;
+      }
+      .category-checkbox-item input {
+        width: 16px;
+        height: 16px;
+        accent-color: var(--primary-color);
+      }
+
+      .btn {
+        background: var(--gradient);
+        color: white;
+        border: none;
+        padding: 14px 25px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 600;
+        width: 100%;
+        margin-top: 10px;
+        transition: filter 0.3s;
+      }
+      .btn:hover {
+        filter: brightness(1.1);
+      }
+      .cast-box {
+        background: var(--bg-content);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 14px;
+        margin-top: 12px;
+      }
+      .cast-box-title {
+        color: var(--primary-color);
+        font-weight: 600;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .cast-container {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .cast-item {
+        background-color: #101010;
+        border: 1px solid var(--border-color);
+        padding: 10px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        position: relative;
+      }
+      .cast-item img {
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+        background: #222;
+        border: 2px solid var(--border-color);
+      }
+      .cast-item input {
+        flex: 1 1 0;
+        min-width: 0;
+        padding: 12px;
+        background: var(--bg-input);
+        border: none;
+        border-radius: 8px;
+        color: var(--text-primary);
+        font-size: 14px;
+        outline: none;
+      }
+      .cast-item .remove-btn {
+        position: static;
+        transform: none;
+        flex-shrink: 0;
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        background: var(--primary-color);
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        font-size: 18px;
+      }
+      .add-cast-btn {
+        width: 100%;
+        margin-top: 12px;
+        padding: 14px;
+        background: transparent;
+        border: 1px solid var(--primary-color);
+        color: var(--primary-color);
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 15px;
+        cursor: pointer;
+      }
+      .seasons-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+      }
+      .btn-tmdb-load {
+        background: linear-gradient(90deg, #1565c0, #2196f3);
+        color: #fff;
+        border: none;
+        padding: 12px 16px;
+        border-radius: 10px;
+        font-weight: 700;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      .btn-tmdb-load:disabled { opacity: 0.6; cursor: progress; }
+      .btn-add-season {
+        background: #1a1030;
+        border: 1px solid #7c4dff;
+        color: #b39ddb;
+        padding: 12px 16px;
+        border-radius: 10px;
+        font-weight: 700;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      .tmdb-info-box {
+        display: none;
+        margin-top: 14px;
+        background: rgba(21, 101, 192, 0.15);
+        border: 1px solid rgba(33, 150, 243, 0.5);
+        color: #64b5f6;
+        border-radius: 10px;
+        padding: 14px;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      .tmdb-info-box b { color: #90caf9; }
+      .category-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 25px;
+      }
+      .category-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background-color: var(--bg-content);
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        margin-bottom: 10px;
+      }
+
+      .category-item .view-mode,
+      .category-item .edit-mode {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+      }
+      .category-item .actions {
+        display: flex;
+        gap: 10px;
+      }
+      .category-edit-input {
+        padding: 8px;
+        background-color: var(--bg-input);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        color: var(--text-primary);
+        font-size: 14px;
+        flex-grow: 1;
+        margin-right: 15px;
+      }
+      .category-edit-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+      }
+
+      @media (max-width: 992px) {
+        .sidebar {
+          transform: translateX(-100%);
+        }
+        .sidebar.open {
+          transform: translateX(0);
+        }
+        .main-content {
+          margin-left: 0;
+          width: 100%;
+          padding: 15px;
+          padding-top: 75px;
+        }
+        .main-header {
+          display: flex;
+          align-items: center;
+          padding: 0 15px;
+          height: 60px;
+          background-color: #000;
+          border-bottom: 1px solid var(--border-color);
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          z-index: 1000;
+        }
+        #menu-toggle {
+          background: none;
+          border: none;
+          color: var(--text-primary);
+          font-size: 24px;
+          cursor: pointer;
+        }
+        .view-header {
+          font-size: 24px;
+        }
+      }
+      .status-message {
+        padding: 12px;
+        border-radius: 6px;
+        text-align: center;
+        font-weight: 500;
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10001;
+        min-width: 250px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      }
+      .success {
+        background-color: #2e7d32;
+        color: white;
+      }
+      .error {
+        background-color: #c62828;
+        color: white;
+      }
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(5px);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 1200;
+      }
+      .modal-content {
+        background: var(--bg-content);
+        padding: 20px;
+        border-radius: 10px;
+        width: 90%;
+        max-width: 450px;
+        max-height: 80vh;
+        overflow-y: auto;
+        border: 1px solid var(--border-color);
+      }
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 10px;
+        margin-bottom: 15px;
+      }
+      .modal-close {
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        font-size: 24px;
+        cursor: pointer;
+      }
+      .search-result-item {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 10px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      .search-result-item:hover {
+        background-color: var(--bg-input);
+      }
+      .search-result-item img {
+        width: 50px;
+        height: 75px;
+        object-fit: cover;
+        border-radius: 4px;
+      }
+      .search-result-info h4 {
+        color: var(--text-primary);
+        font-size: 16px;
+      }
+      .search-result-info p {
+        color: var(--text-secondary);
+        font-size: 14px;
+      }
+      .table-container {
+        background-color: var(--bg-content);
+        border-radius: 12px;
+        overflow-x: auto;
+        border: 1px solid var(--border-color);
+      }
+      .styled-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .styled-table thead tr {
+        background-color: var(--bg-input);
+        text-align: left;
+        font-weight: 600;
+      }
+      .styled-table th,
+      .styled-table td {
+        padding: 15px;
+        white-space: nowrap;
+      }
+      .styled-table tbody tr {
+        border-bottom: 1px solid var(--border-color);
+      }
+      .styled-table tbody tr:last-of-type {
+        border-bottom: none;
+      }
+      .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: var(--primary-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+      }
+
+      /* Banned User Row Style */
+      .banned-row {
+        background-color: rgba(198, 40, 40, 0.1);
+      }
+      .banned-row td {
+        color: #e57373;
+      }
+      .banned-badge {
+        background: #c62828;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 10px;
+        margin-left: 8px;
+        vertical-align: middle;
+      }
+
+      .radio-group {
+        display: flex;
+        gap: 20px;
+        margin-top: 10px;
+      }
+      .radio-group label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+      }
+      .radio-group input {
+        accent-color: var(--primary-color);
+      }
+      #notif-movie-preview {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        background-color: var(--bg-input);
+        padding: 10px;
+        border-radius: 8px;
+        margin-top: 15px;
+      }
+      #notif-movie-preview img {
+        width: 60px;
+        height: 90px;
+        object-fit: cover;
+        border-radius: 4px;
+      }
+      hr {
+        border: none;
+        height: 1px;
+        background-color: var(--border-color);
+        margin: 20px 0;
+      }
+      .avatar-management-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+      }
+      .avatar-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 15px;
+        margin-top: 20px;
+      }
+      .avatar-card {
+        position: relative;
+      }
+      .avatar-card img {
+        width: 100%;
+        aspect-ratio: 1/1;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 2px solid var(--border-color);
+      }
+      .avatar-card .delete-btn {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        opacity: 0;
+        transform: scale(0.8);
+        transition: all 0.2s ease-in-out;
+      }
+      .avatar-card:hover .delete-btn {
+        opacity: 1;
+        transform: scale(1);
+      }
+      .season-collapsed .episodes-container,
+      .season-collapsed .season-actions { display: none !important; }
+      .season-toggle {
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        font-size: 16px;
+        margin-left: auto;
+      }
+      .season-eps-count { color: var(--text-secondary); font-size: 12px; }
+      .season-block {
+        background: var(--bg-input);
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        border-left: 3px solid var(--primary-color);
+      }
+      .season-header {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 15px;
+      }
+      .season-header input {
+        width: 100px;
+      }
+      .episode-block,
+      .video-source-block {
+        background: var(--bg-main);
+        padding: 15px;
+        border-radius: 6px;
+        margin-top: 10px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        position: relative;
+      }
+      .episode-block .form-group,
+      .video-source-block .form-group {
+        margin-bottom: 0;
+      }
+      .episode-block .full-width,
+      .video-source-block .full-width {
+        grid-column: 1 / -1;
+      }
+      .remove-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        font-size: 16px;
+        cursor: pointer;
+      }
+      .remove-btn:hover {
+        color: var(--primary-color);
+      }
+
+      .switch-container {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+      .switch {
+        position: relative;
+        display: inline-block;
+        width: 60px;
+        height: 34px;
+      }
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #333;
+        transition: 0.4s;
+        border-radius: 34px;
+      }
+      .slider:before {
+        position: absolute;
+        content: "";
+        height: 26px;
+        width: 26px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        transition: 0.4s;
+        border-radius: 50%;
+      }
+      input:checked + .slider {
+        background-color: var(--primary-color);
+      }
+      input:focus + .slider {
+        box-shadow: 0 0 1px var(--primary-color);
+      }
+      input:checked + .slider:before {
+        transform: translateX(26px);
+      }
+
+      /* Plan Card Styles */
+      .plan-card {
+        background-color: var(--bg-content);
+        border-radius: 8px;
+        padding: 20px;
+        border: 1px solid var(--border-color);
+        position: relative;
+        margin-bottom: 15px;
+      }
+      .plan-card h3 {
+        color: var(--primary-color);
+        margin-bottom: 10px;
+        font-size: 20px;
+      }
+      .plan-card .price {
+        font-size: 24px;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 10px;
+      }
+      .plan-card .details {
+        font-size: 13px;
+        color: var(--text-secondary);
+        margin-bottom: 15px;
+      }
+      .plan-card .details span {
+        display: block;
+        margin-bottom: 5px;
+      }
+
+      .premium-check-label {
+        color: #ffb700;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      /* ADS SPECIFIC STYLES */
+      .ad-card {
+        background: var(--bg-content);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        overflow: hidden;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+      }
+      .ad-preview {
+        width: 100%;
+        height: 180px;
+        background: #000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        position: relative;
+      }
+      .ad-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .ad-preview video {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+      .ad-type-badge {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        padding: 4px 8px;
+        background: var(--primary-color);
+        color: #fff;
+        font-size: 10px;
+        border-radius: 4px;
+        font-weight: 600;
+        z-index: 10;
+      }
+      .ad-content {
+        padding: 15px;
+        flex-grow: 1;
+      }
+      .ad-title {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 5px;
+      }
+      .ad-meta {
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin-bottom: 10px;
+        display: flex;
+        gap: 10px;
+      }
+      .ad-controls {
+        padding: 15px;
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--bg-input);
+      }
+
+      @media (max-width: 600px) {
+        .episode-block,
+        .video-source-block {
+          grid-template-columns: 1fr;
+        }
+        .avatar-management-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    
+      .notif-img-actions { display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; }
+      .btn-small { background:#222; color:#fff; border:1px solid #444; padding:8px 14px; border-radius:8px; cursor:pointer; font-size:13px; }
+      .btn-small:hover { border-color:#e50914; }
+      .btn-small.danger { color:#ff6b6b; }
+      .notif-img-preview { margin-top:12px; display:flex; align-items:center; gap:12px; }
+      .notif-img-preview img { width:90px; height:90px; object-fit:cover; border-radius:10px; border:1px solid #333; }
+      .notif-img-preview span { color:#9a9a9a; font-size:12px; }
+      #sent-notifications-list { display:flex; flex-direction:column; gap:12px; }
+      .sent-notif-card { display:flex; align-items:center; gap:14px; background:var(--card-bg); border:1px solid var(--border-color); border-radius:12px; padding:12px 14px; }
+      .sent-notif-card .notif-thumb { width:64px; height:64px; object-fit:cover; border-radius:10px; flex-shrink:0; }
+      .sent-notif-info { flex:1; min-width:0; }
+      .sent-notif-title { font-weight:600; color:var(--text-primary); display:flex; align-items:center; gap:8px; }
+      .sent-notif-title i { color:var(--primary-color); }
+      .sent-notif-msg { color:var(--text-secondary); font-size:13px; margin:4px 0; word-break:break-word; }
+      .sent-notif-meta { color:#7a7a7a; font-size:11px; }
+    </style>
+  </head>
+  <body>
+
+    <!-- STATUS MESSAGE -->
+    <div id="status-message" class="status-message" style="display: none"></div>
+
+    <!-- AUTHENTICATION OVERLAY -->
+    <div id="auth-overlay">
+      <div class="auth-box">
+        <h2>Admin Login</h2>
+        <div class="auth-input-group">
+          <input type="email" id="login-email" placeholder="Admin Email" required>
+        </div>
+        <div class="auth-input-group">
+          <input type="password" id="login-password" placeholder="Password" required>
+          <i class="fa-solid fa-eye" id="toggle-password" onclick="togglePass()"></i>
+        </div>
+        <button class="auth-btn" id="auth-login-btn" onclick="handleLogin()">Sign In</button>
+        <div class="auth-footer">
+          <a onclick="handleResetPassword()">Forgot Password?</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN ADMIN APP WRAPPER -->
+    <div id="admin-main-ui" style="display: none; width: 100%;">
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header"><h1>MANA CINEMA</h1></div>
+        <ul class="nav-menu">
+          <li class="nav-item">
+            <a
+              href="#"
+              id="nav-dashboard"
+              class="active"
+              onclick="showView('dashboard-view')"
+            >
+              <i class="fa-solid fa-table-columns"></i>
+              <span>Analytics & Dashboard</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a
+              href="#"
+              id="nav-manage-movies"
+              onclick="showView('manage-movies-view')"
+            >
+              <i class="fa-solid fa-film"></i> <span>Manage Movies</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#" id="nav-add-movie" onclick="showView('add-movie-view')">
+              <i class="fa-solid fa-plus"></i> <span>Add Movie</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a
+              href="#"
+              id="nav-manage-series"
+              onclick="showView('manage-series-view')"
+            >
+              <i class="fa-solid fa-layer-group"></i> <span>Manage Series</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#" id="nav-add-series" onclick="showView('add-series-view')">
+              <i class="fa-solid fa-plus-square"></i> <span>Add Series</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a
+              href="#"
+              id="nav-manage-categories"
+              onclick="showView('manage-categories-view')"
+              ><i class="fa-solid fa-tags"></i><span>Manage Categories</span></a
+            >
+          </li>
+          <li class="nav-item">
+            <a href="#" id="nav-manage-ads" onclick="showView('manage-ads-view')">
+              <i class="fa-solid fa-bullhorn"></i> <span>Manage Ads</span>
+            </a>
+          </li>
+
+          <!-- Premium Features -->
+          <li class="nav-item">
+            <a
+              href="#"
+              id="nav-manage-plans"
+              onclick="showView('manage-plans-view')"
+            >
+              <i class="fa-solid fa-crown"></i> <span>Manage Plans</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a
+              href="#"
+              id="nav-payment-settings"
+              onclick="showView('payment-settings-view')"
+            >
+              <i class="fa-solid fa-qrcode"></i> <span>Payment Settings</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a
+              href="#"
+              id="nav-premium-requests"
+              onclick="showView('premium-requests-view')"
+            >
+              <i class="fa-solid fa-money-bill"></i>
+              <span>Premium Requests</span>
+              <span class="nav-badge" id="premium-badge" style="display: none"
+                >0</span
+              >
+            </a>
+          </li>
+          <li class="nav-item">
+            <a
+              href="#"
+              id="nav-manual-premium"
+              onclick="showView('manual-premium-view')"
+            >
+              <i class="fa-solid fa-user-plus"></i> <span>Assign Premium</span>
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a href="#" id="nav-users" onclick="showView('users-view')">
+              <i class="fa-solid fa-users"></i> <span>Users & Ban System</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a
+              href="#"
+              id="nav-movie-requests"
+              onclick="showView('movie-requests-view')"
+            >
+              <i class="fa-solid fa-inbox"></i>
+              <span>Movie Requests</span>
+              <span class="nav-badge" id="requests-badge" style="display: none"
+                >0</span
+              >
+            </a>
+          </li>
+          <li class="nav-item">
+            <a
+              href="#"
+              id="nav-send-notification"
+              onclick="showView('send-notification-view')"
+            >
+              <i class="fa-solid fa-paper-plane"></i>
+              <span>Send Notification</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a
+              href="#"
+              id="nav-manage-avatars"
+              onclick="showView('manage-avatars-view')"
+            >
+              <i class="fa-solid fa-user-circle"></i> <span>Manage Avatars</span>
+            </a>
+          </li>
+
+          <!-- NEW SETTINGS SECTION -->
+          <li class="nav-item">
+            <a
+              href="#"
+              id="nav-app-control"
+              onclick="showView('app-control-view')"
+            >
+              <i class="fa-solid fa-gears"></i> <span>App Control</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a
+              href="#"
+              id="nav-maintenance"
+              onclick="showView('maintenance-view')"
+            >
+              <i class="fa-solid fa-screwdriver-wrench"></i>
+              <span>Maintenance Mode</span>
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a
+              href="#"
+              id="nav-logout"
+              onclick="handleLogout()"
+              style="color: #ff5252;"
+            >
+              <i class="fa-solid fa-right-from-bracket"></i>
+              <span>Logout Panel</span>
+            </a>
+          </li>
+        </ul>
+      </aside>
+
+      <main class="main-content">
+        <header class="main-header">
+          <button id="menu-toggle"><i class="fa-solid fa-bars"></i></button>
+          <h1 class="mobile-logo">MANA<span class="text-primary">CINEMA</span></h1>
+        </header>
+
+        <section id="dashboard-view" class="view active">
+          <h2 class="view-header">Analytics Dashboard</h2>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-card-icon"><i class="fa-solid fa-ticket"></i></div>
+              <div class="stat-card-info">
+                <h3 id="total-movies-stat">0</h3>
+                <p>Total Movies</p>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-icon">
+                <i class="fa-solid fa-layer-group"></i>
+              </div>
+              <div class="stat-card-info">
+                <h3 id="total-series-stat">0</h3>
+                <p>Total Series</p>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-icon">
+                <i class="fa-solid fa-user-check"></i>
+              </div>
+              <div class="stat-card-info">
+                <h3 id="total-users-stat">0</h3>
+                <p>Total Users</p>
+              </div>
+            </div>
+
+            <!-- NEW ANALYTICS CARDS -->
+            <div class="stat-card premium">
+              <div class="stat-card-icon"><i class="fa-solid fa-crown"></i></div>
+              <div class="stat-card-info">
+                <h3 id="total-vip-stat">0</h3>
+                <p>Active VIP Users</p>
+              </div>
+            </div>
+            <div class="stat-card revenue">
+              <div class="stat-card-icon">
+                <i class="fa-solid fa-chart-line"></i>
+              </div>
+              <div class="stat-card-info">
+                <h3 id="total-revenue-stat">$0</h3>
+                <p>Total Revenue (Est.)</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Movie Views -->
+        <section id="manage-movies-view" class="view">
+          <h2 class="view-header">Manage Movies</h2>
+          <div id="movie-grid-container" class="movie-grid"></div>
+        </section>
+        <section id="add-movie-view" class="view">
+          <h2 class="view-header" id="movie-form-title">Add New Movie</h2>
+          <div class="form-container">
+            <input type="hidden" id="movie-edit-id" />
+            <div class="form-group">
+              <label
+                ><i class="fa-solid fa-magnifying-glass"></i> TMDB Search
+                (Movie)</label
+              ><input
+                type="text"
+                id="movie-tmdb-search"
+                placeholder="Search by Name or enter TMDB ID"
+              /><button
+                class="btn"
+                style="margin-top: 10px"
+                onclick="searchTmdb('movie')"
+              >
+                Search Movie
+              </button>
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-heading"></i> Title</label
+              ><input type="text" id="movie-title" />
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-image"></i> Poster URL</label
+              ><input type="text" id="movie-poster" />
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-panorama"></i> Backdrop URL</label
+              ><input type="text" id="movie-backdrop" />
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-star"></i> Rating</label
+              ><input type="text" id="movie-rating" />
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-calendar-days"></i> Year</label
+              ><input type="number" id="movie-year" />
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-pen-to-square"></i> Storyline</label
+              ><textarea id="movie-storyline"></textarea>
+            </div>
+
+            <!-- UPDATED: Multiple Category Selection -->
+            <div class="form-group">
+              <label
+                ><i class="fa-solid fa-folder-open"></i> Categories (Select
+                Multiple)</label
+              >
+              <div id="movie-category-wrapper" class="category-checkbox-wrapper">
+                <!-- Checkboxes will be injected here by JS -->
+                <p style="color: var(--text-secondary); font-size: 12px">
+                  Loading categories...
+                </p>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label><i class="fa-solid fa-certificate"></i> Quality Badge</label>
+              <select id="movie-quality-badge">
+                <option value="none">None</option>
+                <option value="HD">HD</option>
+                <option value="WEB-DL">WEB-DL</option>
+              </select>
+            </div>
+            <div class="form-group" style="display: flex; gap: 20px">
+              <label style="cursor: pointer; width: auto">
+                <input
+                  type="checkbox"
+                  id="movie-is-new"
+                  style="width: auto; height: 16px; margin-right: 10px"
+                />
+                Mark as 'New'
+              </label>
+              <label class="premium-check-label">
+                <input
+                  type="checkbox"
+                  id="movie-is-premium"
+                  style="width: auto; height: 16px; margin-right: 10px"
+                />
+                <i class="fa-solid fa-lock"></i> Premium (VIP Only)
+              </label>
+            </div>
+            <hr />
+
+            <div class="form-group">
+              <div class="cast-box">
+                <div class="cast-box-title"><i class="fa-solid fa-users"></i> Cast (Star Cast)</div>
+                <div id="movie-cast-container" class="cast-container"></div>
+                <button type="button" class="add-cast-btn" onclick="addCastMember({}, 'movie-cast-container')">+ Add Cast Member</button>
+              </div>
+            </div>
+            <hr />
+            <div class="form-group">
+              <label><i class="fa-solid fa-link"></i> Movie Stream Link (legacy / fallback)</label
+              ><input type="text" id="movie-link" placeholder="https://.../movie.mp4" />
+              <small style="color: var(--text-secondary); font-size: 12px">
+                Used only when no Video Source below is available. Existing movies keep working via this field.
+              </small>
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-closed-captioning"></i> Subtitle URL (.srt / .vtt)</label
+              ><input type="text" id="movie-subtitle" placeholder="Leave empty if none" />
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-film"></i> Trailer URL</label
+              ><input type="text" id="movie-trailer" placeholder="Leave empty if none" />
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-user-tie"></i> Director</label
+              ><input type="text" id="movie-director" />
+            </div>
+            <hr />
+
+            <!-- PHASE 35: Video Sources / Quality management -->
+            <div class="form-group">
+              <div class="cast-box">
+                <div class="cast-box-title">
+                  <i class="fa-solid fa-layer-group"></i> Video Sources (per quality)
+                </div>
+                <div id="movie-sources-container"></div>
+                <button type="button" class="add-cast-btn" onclick="addVideoSource('movie-sources-container')">
+                  + Add Quality
+                </button>
+                <small style="display:block; margin-top:8px; color: var(--text-secondary); font-size: 12px">
+                  Streaming URL and Download URL are separate. Leave one empty if that
+                  operation is unavailable for the quality. Disabled sources are hidden from users.
+                </small>
+              </div>
+            </div>
+            <button class="btn" id="save-movie-btn" onclick="handleSaveMovie()">
+              Save Movie
+            </button>
+          </div>
+        </section>
+
+        <!-- Series Views -->
+        <section id="manage-series-view" class="view">
+          <h2 class="view-header">Manage Series</h2>
+          <div id="series-grid-container" class="movie-grid"></div>
+        </section>
+        <section id="add-series-view" class="view">
+          <h2 class="view-header" id="series-form-title">Add New Series</h2>
+          <div class="form-container">
+            <input type="hidden" id="series-edit-id" />
+            <div class="form-group">
+              <label
+                ><i class="fa-solid fa-magnifying-glass"></i> TMDB Search (TV
+                Show)</label
+              ><input
+                type="text"
+                id="series-tmdb-search"
+                placeholder="Search by Name or enter TMDB ID"
+              /><button
+                class="btn"
+                style="margin-top: 10px"
+                onclick="searchTmdb('tv')"
+              >
+                Search TV Show
+              </button>
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-heading"></i> Title</label
+              ><input type="text" id="series-title" />
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-image"></i> Poster URL</label
+              ><input type="text" id="series-poster" />
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-panorama"></i> Backdrop URL</label
+              ><input type="text" id="series-backdrop" />
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-star"></i> Rating</label
+              ><input type="text" id="series-rating" />
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-calendar-days"></i> Year</label
+              ><input type="number" id="series-year" />
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-pen-to-square"></i> Storyline</label
+              ><textarea id="series-storyline"></textarea>
+            </div>
+
+            <!-- UPDATED: Multiple Category Selection -->
+            <div class="form-group">
+              <label
+                ><i class="fa-solid fa-folder-open"></i> Categories (Select
+                Multiple)</label
+              >
+              <div id="series-category-wrapper" class="category-checkbox-wrapper">
+                <!-- Checkboxes will be injected here by JS -->
+                <p style="color: var(--text-secondary); font-size: 12px">
+                  Loading categories...
+                </p>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label><i class="fa-solid fa-certificate"></i> Quality Badge</label>
+              <select id="series-quality-badge">
+                <option value="none">None</option>
+                <option value="HD">HD</option>
+                <option value="WEB-DL">WEB-DL</option>
+              </select>
+            </div>
+            <div class="form-group" style="display: flex; gap: 20px">
+              <label style="cursor: pointer; width: auto">
+                <input
+                  type="checkbox"
+                  id="series-is-new"
+                  style="width: auto; height: 16px; margin-right: 10px"
+                />
+                Mark as 'New'
+              </label>
+              <label class="premium-check-label">
+                <input
+                  type="checkbox"
+                  id="series-is-premium"
+                  style="width: auto; height: 16px; margin-right: 10px"
+                />
+                <i class="fa-solid fa-lock"></i> Premium Series (VIP)
+              </label>
+            </div>
+            <hr />
+
+            <div class="form-group">
+              <div class="cast-box">
+                <div class="cast-box-title"><i class="fa-solid fa-users"></i> Cast (Star Cast)</div>
+                <div id="series-cast-container" class="cast-container"></div>
+                <button type="button" class="add-cast-btn" onclick="addCastMember({}, 'series-cast-container')">+ Add Cast Member</button>
+              </div>
+            </div>
+            <hr />
+            <div class="form-group">
+              <label><i class="fa-solid fa-film"></i> Trailer URL</label
+              ><input type="text" id="series-trailer" placeholder="Leave empty if none" />
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-user-tie"></i> Director</label
+              ><input type="text" id="series-director" />
+            </div>
+            <hr />
+            <div class="form-group">
+              <div class="seasons-toolbar">
+                <span style="color: var(--primary-color); font-weight: 600; font-size: 17px"
+                  ><i class="fa-solid fa-layer-group"></i> Seasons &amp; Episodes</span
+                >
+                <div style="display: flex; gap: 10px; flex-wrap: wrap">
+                  <button type="button" id="tmdb-load-eps-btn" class="btn-tmdb-load" onclick="loadAllEpisodesFromTmdb()">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> TMDB se Sare Episodes Load Karo
+                  </button>
+                  <button type="button" class="btn-add-season" onclick="addSeason()">+ Season</button>
+                </div>
+              </div>
+              <div id="series-tmdb-info" class="tmdb-info-box"></div>
+              <div id="series-seasons-container" style="margin-top: 14px"></div>
+            </div>
+            <button class="btn" id="save-series-btn" onclick="handleSaveSeries()">
+              Save Series
+            </button>
+          </div>
+        </section>
+
+        <!-- Other Views -->
+        <section id="manage-categories-view" class="view">
+          <h2 class="view-header">Manage Categories</h2>
+          <div
+            class="form-container"
+            style="max-width: 500px; margin-bottom: 30px"
+          >
+            <div class="form-group">
+              <label><i class="fa-solid fa-plus"></i> Add New Category</label
+              ><input
+                type="text"
+                id="category-name"
+                placeholder="e.g., Hollywood"
+              />
+            </div>
+            <button class="btn" id="save-category-btn" onclick="handleSaveCategory()">
+              Save Category
+            </button>
+          </div>
+          <div id="category-list-container"></div>
+        </section>
+        <section id="manage-ads-view" class="view">
+          <h2 class="view-header">Manage Advertisements</h2>
+          <div class="form-container">
+            <h3 style="margin-bottom: 15px">Create New Ad</h3>
+            <input type="hidden" id="ad-edit-id" />
+            <div class="form-group">
+              <label
+                ><i class="fa-solid fa-heading"></i> Ad Title (Internal
+                Use)</label
+              ><input
+                type="text"
+                id="ad-title"
+                placeholder="e.g., Betting App Promo 1"
+              />
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-layer-group"></i> Ad Type</label
+              ><select id="ad-type">
+                <option value="image">Image Banner (Full Screen)</option>
+                <option value="video">Video Ad</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label
+                ><i class="fa-solid fa-image"></i> Media URL (Image or Video
+                Link)</label
+              ><input
+                type="text"
+                id="ad-media-url"
+                placeholder="https://.../ad.jpg OR https://.../ad.mp4"
+              />
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-link"></i> Click Target URL</label
+              ><input
+                type="text"
+                id="ad-target-url"
+                placeholder="https://website.com"
+              />
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-clock"></i> Duration (Seconds)</label
+              ><input
+                type="number"
+                id="ad-duration"
+                placeholder="e.g. 5, 10, 30"
+                value="5"
+              />
+            </div>
+            <div class="form-group">
+              <label style="cursor: pointer; width: auto"
+                ><input
+                  type="checkbox"
+                  id="ad-is-active"
+                  style="width: auto; height: 16px; margin-right: 10px"
+                  checked
+                />
+                Enable Immediately</label
+              >
+            </div>
+            <button class="btn" id="save-ad-btn" onclick="handleSaveAd()">
+              Save Advertisement
+            </button>
+          </div>
+          <hr />
+          <h3 style="margin-bottom: 20px">Active Advertisement Leads</h3>
+          <div id="ads-grid-container" class="movie-grid"></div>
+        </section>
+
+        <!-- PREMIUM SECTIONS START -->
+        <section id="manage-plans-view" class="view">
+          <h2 class="view-header">Manage Premium Plans</h2>
+          <div class="form-container">
+            <div class="form-group">
+              <label><i class="fa-solid fa-tag"></i> Plan Name</label
+              ><input
+                type="text"
+                id="plan-name"
+                placeholder="e.g., Monthly VIP"
+              />
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-money-bill-wave"></i> Price</label
+              ><input
+                type="text"
+                id="plan-price"
+                placeholder="e.g., $9.99 or 999 INR"
+              />
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-calendar"></i> Duration (Days)</label
+              ><input type="number" id="plan-days" placeholder="e.g., 30" />
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-mobile-screen"></i> Device Limit</label
+              ><input type="number" id="plan-devices" placeholder="e.g., 2" />
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-info-circle"></i> Description</label
+              ><textarea
+                id="plan-desc"
+                placeholder="Details about the plan (e.g., 4K Quality, No Ads)"
+              ></textarea>
+            </div>
+            <button class="btn" id="save-plan-btn" onclick="savePlan()">Add Plan</button>
+          </div>
+          <hr />
+          <h3 style="margin-bottom: 20px">Active Plans</h3>
+          <div
+            id="plans-list-container"
+            style="
+              display: grid;
+              grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+              gap: 20px;
+            "
+          ></div>
+        </section>
+
+        <section id="payment-settings-view" class="view">
+          <h2 class="view-header">Payment Settings</h2>
+          <div class="form-container">
+            <p style="color: var(--text-secondary); margin-bottom: 20px">
+              Set up your UPI ID and QR Code so users know where to send payments.
+            </p>
+            <div class="form-group">
+              <label
+                ><i class="fa-solid fa-mobile-button"></i> UPI ID (UPI
+                Number/Address)</label
+              ><input
+                type="text"
+                id="payment-upi-id"
+                placeholder="e.g., merchant@upi or 9876543210@ybl"
+              />
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-qrcode"></i> QR Code Image URL</label
+              ><input
+                type="text"
+                id="payment-qr-code"
+                placeholder="https://.../qrcode.jpg"
+              /><small style="color: var(--text-secondary)"
+                >Upload your QR code image to a host and paste the link
+                here.</small
+              >
+            </div>
+            <div
+              id="qr-preview"
+              style="margin-top: 15px; text-align: center; display: none"
+            >
+              <p>Preview:</p>
+              <img
+                id="qr-preview-img"
+                src=""
+                style="
+                  width: 200px;
+                  height: 200px;
+                  object-fit: contain;
+                  border: 2px solid var(--border-color);
+                  border-radius: 8px;
+                "
+              />
+            </div>
+            <button class="btn" id="save-payment-btn" onclick="savePaymentDetails()">
+              Save Payment Details
+            </button>
+          </div>
+        </section>
+
+        <section id="premium-requests-view" class="view">
+          <h2 class="view-header">Premium Requests (UTR)</h2>
+          <div class="table-container">
+            <table class="styled-table">
+              <thead>
+                <tr>
+                  <th>User Email</th>
+                  <th>Plan Name</th>
+                  <th>UTR Number</th>
+                  <th>Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="premium-requests-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="manual-premium-view" class="view">
+          <h2 class="view-header">Assign Premium Manually</h2>
+          <div class="form-container">
+            <p style="margin-bottom: 20px; color: var(--text-secondary)">
+              Directly grant premium access to a user by their User ID (UID).
+              Pick an existing plan to auto-fill, or set the values yourself.
+            </p>
+            <div class="form-group">
+              <label><i class="fa-solid fa-id-badge"></i> User ID (UID)</label
+              ><input
+                type="text"
+                id="manual-uid"
+                placeholder="Enter User UID from Users table"
+              />
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-crown"></i> Use an existing Plan (optional)</label>
+              <select id="manual-plan-select" onchange="applyPlanToManualForm(this)">
+                <option value="">-- custom (set fields below) --</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-tag"></i> Plan Name</label
+              ><input type="text" id="manual-plan-name" placeholder="e.g., Admin Grant" />
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-clock"></i> Duration (Days)</label
+              ><input type="number" id="manual-days" placeholder="e.g., 365" min="1" />
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-mobile-screen"></i> Device Limit</label
+              ><input type="number" id="manual-devices" placeholder="e.g., 2" min="1" value="1" />
+            </div>
+            <button class="btn" id="manual-premium-btn" onclick="handleManualPremium()">
+              Grant Premium
+            </button>
+          </div>
+        </section>
+
+        <!-- NEW USER BAN SECTION -->
+        <section id="users-view" class="view">
+          <h2 class="view-header">Manage Users & Bans</h2>
+          <div class="table-container">
+            <table class="styled-table">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Email</th>
+                  <th>User ID</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="user-list-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="movie-requests-view" class="view">
+          <h2 class="view-header">Movie Requests</h2>
+          <div class="table-container">
+            <table class="styled-table">
+              <thead>
+                <tr>
+                  <th>Movie Title</th>
+                  <th>Year</th>
+                  <th>Requested By</th>
+                  <th>Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="request-list-body"></tbody>
+            </table>
+          </div>
+        </section>
+        <section id="send-notification-view" class="view">
+          <h2 class="view-header">Send Notification</h2>
+          <div class="form-container">
+            <input type="hidden" id="notif-movie-id" /><input
+              type="hidden"
+              id="notif-movie-poster"
+            />
+            <div class="form-group">
+              <label><i class="fa-solid fa-pen"></i> Notification Title</label
+              ><input
+                type="text"
+                id="notif-title"
+                placeholder="e.g., New Movie Added!"
+              />
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-comment-dots"></i> Message</label
+              ><textarea
+                id="notif-message"
+                placeholder="Describe the notification..."
+              ></textarea>
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-icons"></i> Icon</label
+              ><select id="notif-icon">
+                <option value="fa-fire">Trending (Fire)</option>
+                <option value="fa-plus-circle">New Addition (Plus)</option>
+                <option value="fa-tv">TV / Broadcast</option>
+                <option value="fa-bell">General (Bell)</option>
+                <option value="fa-check-circle">Completed (Check)</option>
+              </select>
+            </div>
+            <hr />
+            <div class="form-group">
+              <label><i class="fa-solid fa-image"></i> Notification Photo (Optional)</label>
+              <input
+                type="text"
+                id="notif-image-url"
+                placeholder="Image URL paste karein (https://...)"
+                oninput="updateNotifImagePreview(this.value)"
+              />
+              <div class="notif-img-actions">
+                <button type="button" class="btn-small" onclick="document.getElementById('notif-image-file').click()">
+                  <i class="fa-solid fa-images"></i> Gallery se chunein
+                </button>
+                <button type="button" class="btn-small danger" onclick="clearNotifImage()">
+                  <i class="fa-solid fa-trash"></i> Hatao
+                </button>
+              </div>
+              <input type="file" id="notif-image-file" accept="image/*" style="display:none" onchange="handleNotifImageFile(this)" />
+              <div id="notif-image-preview-box" class="notif-img-preview" style="display:none">
+                <img id="notif-image-preview" src="" alt="Notification photo preview" />
+                <span id="notif-image-hint">Preview</span>
+              </div>
+            </div>
+            <hr />
+            <div class="form-group">
+              <label
+                ><i class="fa-solid fa-link"></i> Attach Movie (Optional)</label
+              ><input
+                type="text"
+                id="notif-movie-search"
+                placeholder="Search for a movie in your database..."
+              />
+              <div id="notif-movie-search-results" style="margin-top: 10px"></div>
+              <div id="notif-movie-preview" style="display: none"></div>
+            </div>
+            <hr />
+            <div class="form-group">
+              <label><i class="fa-solid fa-bullseye"></i> Target Users</label>
+              <div class="radio-group">
+                <label
+                  ><input
+                    type="radio"
+                    name="target"
+                    value="all"
+                    checked
+                    onchange="toggleEmailTarget(false)"
+                  />
+                  All Users</label
+                ><label
+                  ><input
+                    type="radio"
+                    name="target"
+                    value="specific"
+                    onchange="toggleEmailTarget(true)"
+                  />
+                  Specific Users</label
+                >
+              </div>
+            </div>
+            <div
+              class="form-group"
+              id="email-target-container"
+              style="display: none"
+            >
+              <label><i class="fa-solid fa-at"></i> User Emails</label
+              ><textarea
+                id="notif-emails"
+                placeholder="Enter comma-separated email addresses"
+              ></textarea>
+            </div>
+            <button class="btn" id="send-notif-btn" onclick="handleSendNotification()">
+              Send Notification
+            </button>
+            <hr style="margin: 30px 0" />
+            <h3 style="margin-bottom: 15px">
+              <i class="fa-solid fa-bell"></i> Sent Notifications
+            </h3>
+            <div id="sent-notifications-list"></div>
+          </div>
+        </section>
+        <section id="manage-avatars-view" class="view">
+          <h2 class="view-header">Manage User Avatars</h2>
+          <p
+            style="
+              color: var(--text-secondary);
+              margin-top: -20px;
+              margin-bottom: 25px;
+            "
+          >
+            Add or remove avatars that users can select for their profiles.
+          </p>
+          <div class="avatar-management-grid">
+            <div class="form-container">
+              <h3 style="margin-bottom: 15px">Male Avatars</h3>
+              <div class="form-group">
+                <label
+                  ><i class="fa-solid fa-plus"></i> Add New Male Avatar URL</label
+                ><input
+                  type="text"
+                  id="male-avatar-url"
+                  placeholder="https://i.ibb.co/.../avatar.jpg"
+                />
+              </div>
+              <button class="btn" onclick="addAvatar('male')">
+                Add Male Avatar
+              </button>
+              <hr />
+              <div id="male-avatars-grid" class="avatar-grid">
+                <p style="color: var(--text-secondary); grid-column: 1 / -1">
+                  Loading avatars...
+                </p>
+              </div>
+            </div>
+            <div class="form-container">
+              <h3 style="margin-bottom: 15px">Female Avatars</h3>
+              <div class="form-group">
+                <label
+                  ><i class="fa-solid fa-plus"></i> Add New Female Avatar
+                  URL</label
+                ><input
+                  type="text"
+                  id="female-avatar-url"
+                  placeholder="https://i.ibb.co/.../avatar.jpg"
+                />
+              </div>
+              <button class="btn" onclick="addAvatar('female')">
+                Add Female Avatar
+              </button>
+              <hr />
+              <div id="female-avatars-grid" class="avatar-grid">
+                <p style="color: var(--text-secondary); grid-column: 1 / -1">
+                  Loading avatars...
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- NEW APP CONTROL / VERSION SECTION -->
+        <section id="app-control-view" class="view">
+          <h2 class="view-header">App Version Control</h2>
+          <div class="form-container">
+            <p style="color: var(--text-secondary); margin-bottom: 20px">
+              Manage app updates. If "Force Update" is enabled, users cannot use
+              the app without updating.
+            </p>
+            <div class="form-group">
+              <label
+                ><i class="fa-solid fa-code-branch"></i> Version Code
+                (Integer)</label
+              >
+              <input type="number" id="app-ver-code" placeholder="e.g., 10" />
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-tag"></i> Version Name (String)</label>
+              <input type="text" id="app-ver-name" placeholder="e.g., v2.1.0" />
+            </div>
+            <div class="form-group">
+              <label style="cursor: pointer; width: auto">
+                <input
+                  type="checkbox"
+                  id="app-force-update"
+                  style="width: auto; height: 16px; margin-right: 10px"
+                />
+                Force Update Required
+              </label>
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-link"></i> APK Download URL</label>
+              <input
+                type="text"
+                id="app-apk-url"
+                placeholder="https://.../app-release.apk"
+              />
+            </div>
+            <div class="form-group">
+              <label
+                ><i class="fa-solid fa-clipboard-list"></i> What's New
+                (Changelog)</label
+              >
+              <textarea
+                id="app-changelog"
+                placeholder="- Fixed bugs&#10;- Added new features"
+              ></textarea>
+            </div>
+            <button class="btn" id="save-appctl-btn" onclick="saveAppControlSettings()">
+              Update App Settings
+            </button>
+          </div>
+        </section>
+
+        <section id="maintenance-view" class="view">
+          <h2 class="view-header">App Maintenance Mode</h2>
+          <div class="form-container" style="max-width: 600px">
+            <div class="form-group">
+              <label
+                ><i class="fa-solid fa-power-off"></i> Enable Maintenance
+                Mode</label
+              >
+              <div class="switch-container">
+                <label class="switch">
+                  <input type="checkbox" id="maintenance-toggle" />
+                  <span class="slider"></span>
+                </label>
+                <span
+                  id="maintenance-status-text"
+                  style="font-weight: 600; color: var(--text-secondary)"
+                  >App is LIVE</span
+                >
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="maintenance-message"
+                ><i class="fa-solid fa-envelope-open-text"></i> Maintenance
+                Message</label
+              >
+              <textarea
+                id="maintenance-message"
+                placeholder="e.g., The app is currently under maintenance. We will be back shortly."
+              ></textarea>
+            </div>
+            <button class="btn" id="save-maint-btn" onclick="handleSaveMaintenance()">
+              Save Settings
+            </button>
+          </div>
+        </section>
+      </main>
+    </div> <!-- END ADMIN MAIN UI -->
+
+    <div class="modal-overlay" id="search-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Select from Results</h3>
+          <button class="modal-close" onclick="closeSearchModal()">
+            &times;
+          </button>
+        </div>
+        <div id="search-results-container"></div>
+      </div>
+    </div>
+
+    <script>
+      // ==========================================
+      // FIREBASE CLIENT CONFIG
+      // ==========================================
+      // These values are PUBLIC client identifiers, not secrets — Firebase web apps
+      // are designed to ship them. All actual authorization lives in the Realtime
+      // Database Security Rules (see firebase-rules/database.rules.json). The rules,
+      // not this file, are what stop a non-admin from writing privileged paths.
+      //
+      // NEVER put an FCM server key, service-account JSON, or any private key in
+      // this file — it is fully readable by anyone who opens the panel.
+      const firebaseConfig = {
+        apiKey: "AIzaSyAOZPbx8Wl9eo_2MNDhSS0pLED2X5RGkbo",
+        authDomain: "booyahx-284ea.firebaseapp.com",
+        databaseURL: "https://booyahx-284ea-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "booyahx-284ea",
+        storageBucket: "booyahx-284ea.firebasestorage.app",
+        messagingSenderId: "584230665185",
+        // TODO(migration): replace appId + measurementId with the NEW project's
+        // Web app config (booyahx-284ea → Project settings → Your apps). The old
+        // values are harmless for Auth/Realtime Database but must be updated for
+        // Analytics to report under the new project.
+        appId: "1:278771873944:web:df276bac91e996afd778ed",
+        measurementId: "G-G23X0Q8E34"
+      };
+
+      firebase.initializeApp(firebaseConfig);
+      const database = firebase.database();
+      const auth = firebase.auth();
+
+      // TMDB requests must go through an authenticated backend proxy. The proxy
+      // owns TMDB_API_KEY in Secret Manager; no third-party credential is stored
+      // in this browser or sent in a URL from the Admin panel.
+      const TMDB_PROXY_BASE = "/api/admin/tmdb";
+
+      let allMoviesData = [];
+
+      // ==========================================
+      // AUTHENTICATION LOGIC
+      // ==========================================
+
+      auth.onAuthStateChanged((user) => {
+        const authOverlay = document.getElementById('auth-overlay');
+        const mainUI = document.getElementById('admin-main-ui');
+
+        if (user) {
+          user.getIdTokenResult(true).then((token) => {
+            if (token.claims.admin === true) {
+              // Success: User is Admin
+              authOverlay.style.display = 'none';
+              mainUI.style.display = 'flex';
+              initializeAdminPanel(); // Call data loading after auth
+            } else {
+              // User is logged in but NOT admin
+              showStatus("Access Denied — Administrator account required.", "error");
+              auth.signOut();
+            }
+          }).catch((error) => {
+            console.error("Admin claim verification failed", error);
+            showStatus("Access Denied — administrator verification failed.", "error");
+            auth.signOut();
+          });
+        } else {
+          // No user logged in
+          authOverlay.style.display = 'flex';
+          mainUI.style.display = 'none';
+        }
+      });
+
+      async function handleLogin() {
+        const email = document.getElementById('login-email').value.trim();
+        const pass = document.getElementById('login-password').value.trim();
+        const btn = document.getElementById('auth-login-btn');
+
+        if (!email || !pass) {
+          showStatus("Please enter email and password.", "error");
+          return;
+        }
+
+        btn.disabled = true;
+        btn.innerText = "Signing in...";
+
+        try {
+          await auth.signInWithEmailAndPassword(email, pass);
+        } catch (error) {
+          btn.disabled = false;
+          btn.innerText = "Sign In";
+          handleAuthError(error);
+        }
+      }
+
+      function handleLogout() {
+        if (confirm("Are you sure you want to log out from the Admin Panel?")) {
+          auth.signOut().then(() => {
+            location.reload(); // Hard reset UI
+          });
+        }
+      }
+
+      function handleResetPassword() {
+        const email = document.getElementById('login-email').value.trim();
+        if (!email) {
+          showStatus("Please enter your email address.", "error");
+          return;
+        }
+        auth.sendPasswordResetEmail(email)
+          .then(() => showStatus("Password reset email sent.", "success"))
+          .catch(err => handleAuthError(err));
+      }
+
+      function handleAuthError(error) {
+        let msg = "Authentication failed.";
+        switch (error.code) {
+          case 'auth/user-not-found': msg = "User not found."; break;
+          case 'auth/wrong-password': msg = "Wrong password."; break;
+          case 'auth/invalid-email': msg = "Invalid email address."; break;
+          case 'auth/too-many-requests': msg = "Too many attempts. Try later."; break;
+        }
+        showStatus(msg, "error");
+      }
+
+      function togglePass() {
+        const passInput = document.getElementById('login-password');
+        const icon = document.getElementById('toggle-password');
+        if (passInput.type === "password") {
+          passInput.type = "text";
+          icon.className = "fa-solid fa-eye-slash";
+        } else {
+          passInput.type = "password";
+          icon.className = "fa-solid fa-eye";
+        }
+      }
+
+      // ==========================================
+      // ORIGINAL INITIALIZATION (MOVED HERE)
+      // ==========================================
+
+      function initializeAdminPanel() {
+        const sidebar = document.getElementById("sidebar");
+        const menuToggle = document.getElementById("menu-toggle");
+        const mainContent = document.querySelector(".main-content");
+
+        if (menuToggle) {
+          menuToggle.addEventListener("click", (event) => {
+            event.stopPropagation();
+            sidebar.classList.toggle("open");
+          });
+        }
+
+        if (mainContent) {
+          mainContent.addEventListener("click", () => {
+            if (window.innerWidth <= 992 && sidebar.classList.contains("open")) {
+              sidebar.classList.remove("open");
+            }
+          });
+        }
+
+        // LOAD DATA
+        loadMovies();
+        loadSeries();
+        loadCategories();
+        loadUsers();
+        loadMovieRequests();
+        loadAvatars();
+        loadMaintenanceStatus();
+        loadPlans();
+        loadPremiumRequests();
+        loadPaymentDetails();
+        loadRevenueAnalytics();
+        loadAds();
+        loadAppControlSettings();
+        loadSentNotifications();
+
+        showView("dashboard-view");
+        document.getElementById("notif-movie-search").addEventListener("input", searchMovieForNotif);
+      }
+
+      // Rest of your functions (showView, loadMovies, etc. remain exactly the same)
+
+      function showView(viewId) {
+        document
+          .querySelectorAll(".view")
+          .forEach((view) => view.classList.remove("active"));
+        document.getElementById(viewId).classList.add("active");
+        document
+          .querySelectorAll(".nav-item a")
+          .forEach((link) => link.classList.remove("active"));
+        let activeLink;
+        if (viewId.includes("dashboard"))
+          activeLink = document.getElementById("nav-dashboard");
+        else if (viewId.includes("manage-movies"))
+          activeLink = document.getElementById("nav-manage-movies");
+        else if (viewId.includes("add-movie"))
+          activeLink = document.getElementById("nav-add-movie");
+        else if (viewId.includes("manage-series"))
+          activeLink = document.getElementById("nav-manage-series");
+        else if (viewId.includes("add-series"))
+          activeLink = document.getElementById("nav-add-series");
+        else if (viewId.includes("manage-categories"))
+          activeLink = document.getElementById("nav-manage-categories");
+        else if (viewId.includes("manage-ads"))
+          activeLink = document.getElementById("nav-manage-ads");
+        else if (viewId.includes("manage-plans"))
+          activeLink = document.getElementById("nav-manage-plans");
+        else if (viewId.includes("payment-settings"))
+          activeLink = document.getElementById("nav-payment-settings");
+        else if (viewId.includes("premium-requests"))
+          activeLink = document.getElementById("nav-premium-requests");
+        else if (viewId.includes("manual-premium"))
+          activeLink = document.getElementById("nav-manual-premium");
+        else if (viewId.includes("users"))
+          activeLink = document.getElementById("nav-users");
+        else if (viewId.includes("movie-requests"))
+          activeLink = document.getElementById("nav-movie-requests");
+        else if (viewId.includes("send-notification"))
+          activeLink = document.getElementById("nav-send-notification");
+        else if (viewId.includes("manage-avatars"))
+          activeLink = document.getElementById("nav-manage-avatars");
+        else if (viewId.includes("app-control"))
+          activeLink = document.getElementById("nav-app-control");
+        else if (viewId.includes("maintenance"))
+          activeLink = document.getElementById("nav-maintenance");
+
+        if (activeLink) activeLink.classList.add("active");
+        const sidebar = document.getElementById("sidebar");
+        if (window.innerWidth <= 992 && sidebar.classList.contains("open")) {
+          sidebar.classList.remove("open");
+        }
+        if (viewId === "add-movie-view" && !document.getElementById("movie-edit-id").value) clearMovieForm();
+        if (viewId === "add-series-view" && !document.getElementById("series-edit-id").value) clearSeriesForm();
+        if (viewId === "manage-ads-view" && !document.getElementById("ad-edit-id").value) clearAdForm();
+      }
+
+      function showStatus(message, type) {
+        const statusEl = document.getElementById("status-message");
+        statusEl.textContent = message;
+        statusEl.className = `status-message ${type}`;
+        statusEl.style.display = "block";
+        setTimeout(() => {
+          statusEl.style.display = "none";
+        }, 3000);
+      }
+
+      // ==========================================
+      // SHARED HELPERS
+      // ==========================================
+
+      /**
+       * Runs an awaited Firebase operation with the button disabled, and only
+       * reports success after the promise resolves. Errors surface the real
+       * Firebase message instead of being swallowed (Phase 11).
+       */
+      async function withBusy(btn, fn, errorPrefix) {
+        const original = btn ? btn.textContent : null;
+        if (btn) { btn.disabled = true; btn.textContent = "Saving..."; }
+        try {
+          await fn();
+          return true;
+        } catch (e) {
+          const msg = e && e.message ? e.message : String(e);
+          showStatus(`${errorPrefix}: ${msg}`, "error");
+          return false;
+        } finally {
+          if (btn) { btn.disabled = false; if (original !== null) btn.textContent = original; }
+        }
+      }
+
+      /** Safe for use inside an HTML attribute value. */
+      function escapeAttr(str) {
+        return String(str == null ? "" : str).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      }
+
+      /**
+       * Categories in either shape:
+       *   NEW: categories: ["Action","Drama"]
+       *   OLD: category: "Action, Drama"
+       * Both stay supported so existing records never break (Phase 3 / 30).
+       */
+      function readCategories(data) {
+        if (!data) return [];
+        if (Array.isArray(data.categories)) {
+          return data.categories.map((c) => String(c).trim()).filter(Boolean);
+        }
+        if (data.categories && typeof data.categories === "object") {
+          return Object.values(data.categories).map((c) => String(c).trim()).filter(Boolean);
+        }
+        if (typeof data.category === "string") {
+          return data.category.split(",").map((c) => c.trim()).filter(Boolean);
+        }
+        return [];
+      }
+
+      const QUALITY_OPTIONS = ["360p", "480p", "720p", "1080p", "1440p", "2160p"];
+      const QUALITY_RANK = { "360p": 360, "480p": 480, "720p": 720, "1080p": 1080, "1440p": 1440, "2160p": 2160 };
+
+      /** Canonical quality label; accepts 4K/2160/hd/etc. */
+      function normalizeQuality(raw) {
+        const q = String(raw == null ? "" : raw).trim().toLowerCase();
+        if (!q) return "";
+        if (["4k", "2160", "2160p", "uhd"].includes(q)) return "2160p";
+        if (["2k", "1440", "1440p"].includes(q)) return "1440p";
+        if (["fhd", "1080", "1080p"].includes(q)) return "1080p";
+        if (["hd", "720", "720p"].includes(q)) return "720p";
+        if (["sd", "480", "480p"].includes(q)) return "480p";
+        if (["360", "360p"].includes(q)) return "360p";
+        return String(raw).trim();
+      }
+
+      /** 2160p shows as 4K; everything else as-is. */
+      function qualityLabel(q) {
+        return normalizeQuality(q) === "2160p" ? "4K" : normalizeQuality(q);
+      }
+
+      /**
+       * Reads videoSources from a movie/episode record, tolerating an array or a
+       * quality-keyed map, sorted best-first. Never throws on malformed data.
+       */
+      function readSourcesFromData(data) {
+        if (!data || !data.videoSources) return [];
+        const raw = data.videoSources;
+        let list = [];
+        if (Array.isArray(raw)) {
+          list = raw.filter(Boolean);
+        } else if (typeof raw === "object") {
+          // Map form: key is the quality.
+          list = Object.keys(raw).map((k) => Object.assign({ quality: k }, raw[k] || {}));
+        }
+        return list
+          .map((s) => ({
+            quality: normalizeQuality(s.quality),
+            streamUrl: (s.streamUrl || "").trim(),
+            downloadUrl: (s.downloadUrl || "").trim(),
+            fileSize: s.fileSize || "",
+            format: s.format || "",
+            server: s.server || "",
+            enabled: s.enabled !== false,
+          }))
+          .filter((s) => s.quality || s.streamUrl || s.downloadUrl)
+          .sort((a, b) => (QUALITY_RANK[b.quality] || 0) - (QUALITY_RANK[a.quality] || 0));
+      }
+
+      /** Adds one editable Video Source row. */
+      function addVideoSource(containerId, data) {
+        const d = data || {};
+        const container = document.getElementById(containerId);
+        if (!container) return null;
+        const row = document.createElement("div");
+         row.className = "video-source-block source-block";
+        const current = normalizeQuality(d.quality);
+        const options = QUALITY_OPTIONS.map(
+          (q) => `<option value="${q}" ${q === current ? "selected" : ""}>${qualityLabel(q)}</option>`
+        ).join("");
+        row.innerHTML = `
+            <button type="button" class="remove-btn" onclick="removeElement(this)" title="Delete source">&times;</button>
+            <div class="form-group"><label>Quality</label>
+              <select class="source-quality"><option value="">-- select --</option>${options}</select>
+            </div>
+            <div class="form-group"><label>Format</label>
+              <select class="source-format">
+                <option value="mp4" ${d.format === "mp4" || !d.format ? "selected" : ""}>MP4</option>
+                <option value="mkv" ${d.format === "mkv" ? "selected" : ""}>MKV</option>
+                <option value="hls" ${d.format === "hls" ? "selected" : ""}>HLS (m3u8)</option>
+                <option value="dash" ${d.format === "dash" ? "selected" : ""}>DASH (mpd)</option>
+              </select>
+            </div>
+            <div class="form-group full-width"><label>Streaming URL</label>
+              <input type="text" class="source-stream" placeholder="https://.../play.mp4 (empty = not streamable)" value="${escapeAttr(d.streamUrl)}"></div>
+            <div class="form-group full-width"><label>Download URL</label>
+              <input type="text" class="source-download" placeholder="https://.../file.mp4 (empty = not downloadable)" value="${escapeAttr(d.downloadUrl)}"></div>
+            <div class="form-group"><label>File Size</label>
+              <input type="text" class="source-size" placeholder="e.g. 1.4 GB" value="${escapeAttr(d.fileSize)}"></div>
+            <div class="form-group"><label>Server</label>
+              <input type="text" class="source-server" placeholder="e.g. Server 1" value="${escapeAttr(d.server)}"></div>
+            <div class="form-group full-width">
+              <label style="color:#4caf50; font-size:13px; font-weight:600; cursor:pointer;">
+                <input type="checkbox" class="source-enabled" style="width:auto; margin-right:5px;" ${d.enabled === false ? "" : "checked"}> Enabled (visible to users)
+              </label>
+            </div>`;
+        container.appendChild(row);
+        return row;
+      }
+
+      /**
+       * Reads all Video Source rows from a container.
+       * Returns { list, error }. Empty rows are dropped; duplicate qualities and
+       * malformed URLs are rejected so bad data can never reach the app.
+       */
+      function collectVideoSources(containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return { list: [], error: null };
+        const list = [];
+        const seen = new Set();
+         const rows = Array.from(container.querySelectorAll(".video-source-block"));
+        for (const row of rows) {
+          const quality = normalizeQuality(row.querySelector(".source-quality").value);
+          const streamUrl = row.querySelector(".source-stream").value.trim();
+          const downloadUrl = row.querySelector(".source-download").value.trim();
+
+          // Completely blank row: ignore rather than reject.
+          if (!quality && !streamUrl && !downloadUrl) continue;
+          if (!quality) return { list: [], error: "Every video source needs a quality selected." };
+          if (!streamUrl && !downloadUrl) {
+            return { list: [], error: `${qualityLabel(quality)}: provide a streaming URL, a download URL, or delete the row.` };
+          }
+          if (streamUrl && !isValidUrl(streamUrl)) {
+            return { list: [], error: `${qualityLabel(quality)}: streaming URL is not a valid http(s) URL.` };
+          }
+          if (downloadUrl && !isValidUrl(downloadUrl)) {
+            return { list: [], error: `${qualityLabel(quality)}: download URL is not a valid http(s) URL.` };
+          }
+          if (seen.has(quality)) {
+            return { list: [], error: `Duplicate quality "${qualityLabel(quality)}" — each quality may appear once.` };
+          }
+          seen.add(quality);
+
+          list.push({
+            quality: quality,
+            streamUrl: streamUrl,
+            downloadUrl: downloadUrl,
+            fileSize: row.querySelector(".source-size").value.trim(),
+            format: row.querySelector(".source-format").value,
+            server: row.querySelector(".source-server").value.trim(),
+            enabled: row.querySelector(".source-enabled").checked,
+          });
+        }
+        // Persist best-first so the app and admin agree on ordering.
+        list.sort((a, b) => (QUALITY_RANK[b.quality] || 0) - (QUALITY_RANK[a.quality] || 0));
+        return { list: list, error: null };
+      }
+
+      function isValidUrl(value) {
+        try {
+          const u = new URL(value);
+          return u.protocol === "http:" || u.protocol === "https:";
+        } catch (e) {
+          return false;
+        }
+      }
+
+      // MOVIE FUNCTIONS
+      function clearMovieForm() {
+        document.getElementById("movie-edit-id").value = "";
+        document.getElementById("movie-form-title").textContent = "Add New Movie";
+        document.getElementById("save-movie-btn").textContent = "Save Movie";
+        document.getElementById("movie-tmdb-search").value = "";
+        document.getElementById("movie-title").value = "";
+        document.getElementById("movie-poster").value = "";
+        document.getElementById("movie-backdrop").value = "";
+        document.getElementById("movie-rating").value = "";
+        document.getElementById("movie-year").value = "";
+        document.getElementById("movie-storyline").value = "";
+        document.getElementById("movie-link").value = "";
+        document.getElementById("movie-subtitle").value = "";
+        document.getElementById("movie-trailer").value = "";
+        document.getElementById("movie-director").value = "";
+        document.getElementById("movie-quality-badge").value = "none";
+        document.getElementById("movie-is-new").checked = false;
+        document.getElementById("movie-is-premium").checked = false;
+        document.getElementById("movie-cast-container").innerHTML = "";
+        document.getElementById("movie-sources-container").innerHTML = "";
+        document.querySelectorAll('#movie-category-wrapper input[type="checkbox"]').forEach((cb) => (cb.checked = false));
+      }
+
+      function loadMovies() {
+        const gridContainer = document.getElementById("movie-grid-container");
+        const totalMoviesStat = document.getElementById("total-movies-stat");
+        database.ref("movies").orderByChild("timestamp").on("value", (snapshot) => {
+            gridContainer.innerHTML = "";
+            allMoviesData = [];
+            const movieCount = snapshot.numChildren();
+            totalMoviesStat.textContent = movieCount;
+            if (movieCount === 0) {
+              gridContainer.innerHTML = '<p style="color: var(--text-secondary);">No movies found.</p>';
+              return;
+            }
+            snapshot.forEach((childSnapshot) => {
+              const movie = childSnapshot.val() || {};
+              const id = childSnapshot.key;
+              allMoviesData.push({ id, ...movie });
+              // Show which qualities exist, not every URL.
+              const quals = readSourcesFromData(movie)
+                .filter((s) => s.enabled !== false)
+                .map((s) => qualityLabel(s.quality));
+              const qualHtml = quals.length
+                ? `<p style="font-size:11px; opacity:.85;">${escapeHtml(quals.join(" • "))}</p>`
+                : "";
+              const card = document.createElement("div");
+              card.className = "movie-card";
+              card.innerHTML = `<img src="${escapeAttr(movie.poster)}" alt="${escapeAttr(movie.title)}" loading="lazy" onerror="this.style.visibility='hidden'"><div class="movie-card-overlay"><div class="movie-card-info"><h3>${escapeHtml(movie.title || "Untitled")}</h3><p>${escapeHtml(movie.year || "")} • ${escapeHtml(movie.rating || "")} <i class="fa-solid fa-star fa-xs"></i></p>${qualHtml}</div><div class="movie-card-actions"><button class="btn-icon" onclick="editMovie('${id}')" title="Edit Movie"><i class="fa-solid fa-pencil"></i></button><button class="btn-icon" onclick="deleteData('movies', '${id}')" title="Delete Movie"><i class="fa-solid fa-trash"></i></button></div></div>`;
+              gridContainer.prepend(card);
+            });
+          });
+      }
+
+      async function handleSaveMovie() {
+        const btn = document.getElementById("save-movie-btn");
+        const editId = document.getElementById("movie-edit-id").value;
+        const title = document.getElementById("movie-title").value.trim();
+        if (!title) return showStatus("Title is required.", "error");
+
+        // Categories are stored as a real array (canonical) AND mirrored into the
+        // legacy comma-joined `category` string so already-installed app builds
+        // keep working. Never rely on equality of the joined string.
+        const selectedCategories = Array.from(
+          document.querySelectorAll("#movie-category-wrapper input:checked")
+        ).map((cb) => cb.value);
+
+        const sources = collectVideoSources("movie-sources-container");
+        if (sources.error) return showStatus(sources.error, "error");
+
+        const link = document.getElementById("movie-link").value.trim();
+        if (!link && sources.list.length === 0) {
+          return showStatus("Add at least one Video Source, or a fallback stream link.", "error");
+        }
+
+        const movieData = {
+          title: title,
+          poster: document.getElementById("movie-poster").value.trim(),
+          backdrop: document.getElementById("movie-backdrop").value.trim(),
+          rating: document.getElementById("movie-rating").value.trim(),
+          year: document.getElementById("movie-year").value.trim(),
+          storyline: document.getElementById("movie-storyline").value.trim(),
+          categories: selectedCategories,
+          category: selectedCategories.join(", "),
+          qualityBadge: document.getElementById("movie-quality-badge").value,
+          isNew: document.getElementById("movie-is-new").checked,
+          isPremium: document.getElementById("movie-is-premium").checked,
+          cast: Array.from(document.querySelectorAll("#movie-cast-container .cast-item")).map((item) => ({
+            name: item.querySelector(".cast-name").value.trim(),
+            photo: item.querySelector(".cast-photo").value.trim(),
+          })).filter((c) => c.name),
+          link: link,
+          subtitleUrl: document.getElementById("movie-subtitle").value.trim(),
+          trailerUrl: document.getElementById("movie-trailer").value.trim(),
+          director: document.getElementById("movie-director").value.trim(),
+          videoSources: sources.list,
+          type: "movie",
+          timestamp: Date.now(),
+        };
+
+        // Await the write and only report success once Firebase confirms it.
+        await withBusy(btn, async () => {
+          if (editId) {
+            await database.ref("movies/" + editId).update(movieData);
+            showStatus("Movie updated!", "success");
+          } else {
+            await database.ref("movies").push(movieData);
+            showStatus("Movie saved!", "success");
+          }
+          clearMovieForm();
+          showView("manage-movies-view");
+        }, "Could not save movie");
+      }
+
+      async function editMovie(id) {
+        try {
+          const snapshot = await database.ref("movies/" + id).once("value");
+          const movie = snapshot.val();
+          if (!movie) return showStatus("Movie not found (it may have been deleted).", "error");
+          clearMovieForm();
+          document.getElementById("movie-edit-id").value = id;
+          document.getElementById("movie-form-title").textContent = "Edit Movie";
+          document.getElementById("save-movie-btn").textContent = "Update Movie";
+          document.getElementById("movie-title").value = movie.title || "";
+          document.getElementById("movie-poster").value = movie.poster || "";
+          document.getElementById("movie-backdrop").value = movie.backdrop || "";
+          document.getElementById("movie-rating").value = movie.rating || "";
+          document.getElementById("movie-year").value = movie.year || "";
+          document.getElementById("movie-storyline").value = movie.storyline || "";
+          // Accept the array (new) or the comma string (legacy).
+          const cats = readCategories(movie);
+          document.querySelectorAll('#movie-category-wrapper input[type="checkbox"]').forEach((cb) => {
+            cb.checked = cats.some((c) => c.toLowerCase() === cb.value.toLowerCase());
+          });
+          document.getElementById("movie-quality-badge").value = movie.qualityBadge || "none";
+          document.getElementById("movie-is-new").checked = !!movie.isNew;
+          document.getElementById("movie-is-premium").checked = !!movie.isPremium;
+          document.getElementById("movie-link").value = movie.link || "";
+          document.getElementById("movie-subtitle").value = movie.subtitleUrl || "";
+          document.getElementById("movie-trailer").value = movie.trailerUrl || "";
+          document.getElementById("movie-director").value = movie.director || "";
+          if (Array.isArray(movie.cast)) movie.cast.forEach((actor) => addCastMember(actor, "movie-cast-container"));
+          // Load EVERY existing source so saving one edit cannot drop the others.
+          readSourcesFromData(movie).forEach((s) => addVideoSource("movie-sources-container", s));
+          showView("add-movie-view");
+        } catch (e) {
+          showStatus("Could not load movie: " + (e && e.message ? e.message : e), "error");
+        }
+      }
+
+      function clearSeriesForm() {
+        document.getElementById("series-edit-id").value = "";
+        document.getElementById("series-form-title").textContent = "Add New Series";
+        document.getElementById("save-series-btn").textContent = "Save Series";
+        document.getElementById("series-tmdb-search").value = "";
+        document.getElementById("series-title").value = "";
+        document.getElementById("series-poster").value = "";
+        document.getElementById("series-backdrop").value = "";
+        document.getElementById("series-rating").value = "";
+        document.getElementById("series-year").value = "";
+        document.getElementById("series-storyline").value = "";
+        document.getElementById("series-trailer").value = "";
+        document.getElementById("series-director").value = "";
+        document.getElementById("series-quality-badge").value = "none";
+        document.getElementById("series-is-new").checked = false;
+        document.getElementById("series-is-premium").checked = false;
+        document.getElementById("series-seasons-container").innerHTML = "";
+        document.getElementById("series-cast-container").innerHTML = "";
+        currentTmdbSeries = null;
+        renderTmdbSeasonInfo();
+        document.querySelectorAll('#series-category-wrapper input[type="checkbox"]').forEach((cb) => (cb.checked = false));
+      }
+
+      function loadSeries() {
+        const gridContainer = document.getElementById("series-grid-container");
+        const totalSeriesStat = document.getElementById("total-series-stat");
+        database.ref("webseries").orderByChild("timestamp").on("value", (snapshot) => {
+            gridContainer.innerHTML = "";
+            const seriesCount = snapshot.numChildren();
+            totalSeriesStat.textContent = seriesCount;
+            if (seriesCount === 0) {
+              gridContainer.innerHTML = '<p style="color: var(--text-secondary);">No series found.</p>';
+              return;
+            }
+            snapshot.forEach((childSnapshot) => {
+              const series = childSnapshot.val();
+              const id = childSnapshot.key;
+              const card = document.createElement("div");
+              card.className = "movie-card";
+              card.innerHTML = `<img src="${series.poster}" alt="${series.title}" loading="lazy"><div class="movie-card-overlay"><div class="movie-card-info"><h3>${series.title}</h3><p>${series.year} • ${series.rating} <i class="fa-solid fa-star fa-xs"></i></p></div><div class="movie-card-actions"><button class="btn-icon" onclick="editSeries('${id}')" title="Edit Series"><i class="fa-solid fa-pencil"></i></button><button class="btn-icon" onclick="deleteData('webseries', '${id}')" title="Delete Series"><i class="fa-solid fa-trash"></i></button></div></div>`;
+              gridContainer.prepend(card);
+            });
+          });
+      }
+
+      async function handleSaveSeries() {
+        const btn = document.getElementById("save-series-btn");
+        const editId = document.getElementById("series-edit-id").value;
+        const title = document.getElementById("series-title").value.trim();
+        if (!title) return showStatus("Title is required.", "error");
+
+        const episodes = [];
+        const seasonBlocks = Array.from(document.querySelectorAll(".season-block"));
+        for (const seasonBlock of seasonBlocks) {
+          const seasonNumber = parseInt(seasonBlock.querySelector(".season-number").value, 10);
+          if (!Number.isFinite(seasonNumber)) {
+            return showStatus("Every season needs a season number.", "error");
+          }
+          const epBlocks = Array.from(seasonBlock.querySelectorAll(".episode-block"));
+          for (const episodeBlock of epBlocks) {
+            const epNum = parseInt(episodeBlock.querySelector(".episode-number").value, 10);
+            if (!Number.isFinite(epNum)) {
+              return showStatus(`Season ${seasonNumber}: every episode needs an episode number.`, "error");
+            }
+            const srcContainer = episodeBlock.querySelector(".episode-sources");
+            const epSources = collectVideoSources(srcContainer ? srcContainer.id : "");
+            if (epSources.error) {
+              return showStatus(`S${seasonNumber}E${epNum} — ${epSources.error}`, "error");
+            }
+            const link = episodeBlock.querySelector(".episode-link").value.trim();
+            if (!link && epSources.list.length === 0) {
+              return showStatus(`S${seasonNumber}E${epNum}: add a Video Source or a fallback stream link.`, "error");
+            }
+            // season/episode written as NUMBERS (the app also tolerates strings).
+            episodes.push({
+              season: seasonNumber,
+              episode: epNum,
+              title: episodeBlock.querySelector(".episode-title").value.trim(),
+              thumbnail: episodeBlock.querySelector(".episode-thumbnail").value.trim(),
+              link: link,
+              subtitleUrl: episodeBlock.querySelector(".episode-subtitle").value.trim(),
+              isPremium: episodeBlock.querySelector(".episode-premium").checked,
+              videoSources: epSources.list,
+            });
+          }
+        }
+        episodes.sort((a, b) => a.season - b.season || a.episode - b.episode);
+
+        const selectedCategories = Array.from(
+          document.querySelectorAll("#series-category-wrapper input:checked")
+        ).map((cb) => cb.value);
+
+        const seriesData = {
+          title: title,
+          poster: document.getElementById("series-poster").value.trim(),
+          backdrop: document.getElementById("series-backdrop").value.trim(),
+          rating: document.getElementById("series-rating").value.trim(),
+          year: document.getElementById("series-year").value.trim(),
+          storyline: document.getElementById("series-storyline").value.trim(),
+          categories: selectedCategories,
+          category: selectedCategories.join(", "),
+          qualityBadge: document.getElementById("series-quality-badge").value,
+          isNew: document.getElementById("series-is-new").checked,
+          isPremium: document.getElementById("series-is-premium").checked,
+          trailerUrl: document.getElementById("series-trailer").value.trim(),
+          director: document.getElementById("series-director").value.trim(),
+          cast: Array.from(document.querySelectorAll("#series-cast-container .cast-item")).map((item) => ({
+            name: item.querySelector(".cast-name").value.trim(),
+            photo: item.querySelector(".cast-photo").value.trim(),
+          })).filter((c) => c.name),
+          episodes: episodes,
+          type: "webseries",
+          timestamp: Date.now(),
+        };
+
+        await withBusy(btn, async () => {
+          if (editId) {
+            await database.ref("webseries/" + editId).update(seriesData);
+            showStatus("Series updated!", "success");
+          } else {
+            await database.ref("webseries").push(seriesData);
+            showStatus("Series saved!", "success");
+          }
+          clearSeriesForm();
+          showView("manage-series-view");
+        }, "Could not save series");
+      }
+
+      async function editSeries(id) {
+        try {
+          const snapshot = await database.ref("webseries/" + id).once("value");
+          const series = snapshot.val();
+          if (!series) return showStatus("Series not found (it may have been deleted).", "error");
+          clearSeriesForm();
+          document.getElementById("series-edit-id").value = id;
+          document.getElementById("series-form-title").textContent = "Edit Series";
+          document.getElementById("save-series-btn").textContent = "Update Series";
+          document.getElementById("series-title").value = series.title || "";
+          document.getElementById("series-poster").value = series.poster || "";
+          document.getElementById("series-backdrop").value = series.backdrop || "";
+          document.getElementById("series-rating").value = series.rating || "";
+          document.getElementById("series-year").value = series.year || "";
+          document.getElementById("series-storyline").value = series.storyline || "";
+          document.getElementById("series-trailer").value = series.trailerUrl || "";
+          document.getElementById("series-director").value = series.director || "";
+          const cats = readCategories(series);
+          document.querySelectorAll('#series-category-wrapper input[type="checkbox"]').forEach((cb) => {
+            cb.checked = cats.some((c) => c.toLowerCase() === cb.value.toLowerCase());
+          });
+          document.getElementById("series-quality-badge").value = series.qualityBadge || "none";
+          document.getElementById("series-is-new").checked = !!series.isNew;
+          document.getElementById("series-is-premium").checked = !!series.isPremium;
+          if (Array.isArray(series.cast)) series.cast.forEach((actor) => addCastMember(actor, "series-cast-container"));
+          const seasonsContainer = document.getElementById("series-seasons-container");
+          seasonsContainer.innerHTML = "";
+          let episodes = series.episodes;
+          if (episodes && !Array.isArray(episodes)) episodes = Object.values(episodes);
+          if (Array.isArray(episodes)) {
+            // Numeric sort so Season 10 does not land between 1 and 2.
+            const bySeason = episodes.reduce((acc, ep) => {
+              const s = parseInt(ep.season, 10) || 1;
+              (acc[s] = acc[s] || []).push(ep);
+              return acc;
+            }, {});
+            Object.keys(bySeason)
+              .map(Number)
+              .sort((a, b) => a - b)
+              .forEach((seasonNumber) => {
+                const seasonBlock = addSeason(seasonNumber);
+                const episodesContainer = seasonBlock.querySelector(".episodes-container");
+                bySeason[seasonNumber]
+                  .sort((a, b) => (parseInt(a.episode, 10) || 0) - (parseInt(b.episode, 10) || 0))
+                  .forEach((ep) => addEpisode(episodesContainer, ep));
+              });
+          }
+          showView("add-series-view");
+        } catch (e) {
+          showStatus("Could not load series: " + (e && e.message ? e.message : e), "error");
+        }
+      }
+
+      function addSeason(seasonNumber = "") {
+        const container = document.getElementById("series-seasons-container");
+        const seasonBlock = document.createElement("div");
+        seasonBlock.className = "season-block";
+        seasonBlock.innerHTML = `<div class="season-header"><label>S</label><input type="number" class="season-number" value="${seasonNumber}" placeholder="1" style="width:70px"><span class="season-title-text">Season ${seasonNumber || ""}</span><span class="season-eps-count">0 episodes</span><button type="button" class="season-toggle" onclick="toggleSeason(this)"><i class="fa-solid fa-chevron-up"></i></button></div><div class="episodes-container"></div><div class="season-actions" style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;"><button type="button" class="btn-sm" onclick="addEpisode(this.closest('.season-block').querySelector('.episodes-container'))">+ Episode Jodein</button><button type="button" class="remove-btn" style="position:static; transform:none;" onclick="removeElement(this)">&times; Remove Season</button></div>`;
+        container.appendChild(seasonBlock);
+        return seasonBlock;
+      }
+
+      function addEpisode(container, episodeData = {}) {
+        const episodeBlock = document.createElement("div");
+        episodeBlock.className = "episode-block";
+        // Unique id so this episode's Video Sources container is addressable.
+        const epUid = "epsrc_" + Math.random().toString(36).slice(2, 10);
+        episodeBlock.innerHTML = `
+            <button type="button" class="remove-btn" onclick="removeElement(this)">&times;</button>
+            <div class="form-group"><label>Ep. Number</label><input type="number" class="episode-number" placeholder="1" value="${escapeAttr(episodeData.episode)}"></div>
+            <div class="form-group"><label>Ep. Title</label><input type="text" class="episode-title" placeholder="Episode Title" value="${escapeAttr(episodeData.title)}"></div>
+            <div class="form-group full-width"><label>Thumbnail URL</label><input type="text" class="episode-thumbnail" placeholder="https://.../thumb.jpg" value="${escapeAttr(episodeData.thumbnail)}"></div>
+            <div class="form-group full-width"><label>Stream Link (legacy / fallback)</label><input type="text" class="episode-link" placeholder="https://.../stream.mp4" value="${escapeAttr(episodeData.link)}"></div>
+            <div class="form-group full-width"><label>Subtitle URL (.srt / .vtt)</label><input type="text" class="episode-subtitle" placeholder="Leave empty if none" value="${escapeAttr(episodeData.subtitleUrl)}"></div>
+            <div class="form-group full-width">
+                <label style="color: #ffb700; font-size: 13px; font-weight:600; cursor:pointer;">
+                    <input type="checkbox" class="episode-premium" style="width:auto; margin-right:5px;" ${episodeData.isPremium ? "checked" : ""}> <i class="fa-solid fa-lock"></i> Premium Episode
+                </label>
+            </div>
+            <div class="form-group full-width">
+                <div class="cast-box" style="margin-top:4px;">
+                  <div class="cast-box-title" style="font-size:13px;"><i class="fa-solid fa-layer-group"></i> Episode Video Sources</div>
+                  <div class="episode-sources" id="${epUid}"></div>
+                  <button type="button" class="add-cast-btn" onclick="addVideoSource('${epUid}')">+ Add Quality</button>
+                </div>
+            </div>
+        `;
+        container.appendChild(episodeBlock);
+        // Load this episode's existing per-quality sources, if any.
+        readSourcesFromData(episodeData).forEach((s) => addVideoSource(epUid, s));
+        updateSeasonCount(container.closest(".season-block"));
+        return episodeBlock;
+      }
+
+      function removeElement(button) {
+         const target = button.closest(".video-source-block") || button.closest(".episode-block") || button.closest(".cast-item") || button.closest(".season-block");
+        const season = target && target.classList.contains("episode-block") ? target.closest(".season-block") : null;
+        if (target) target.remove();
+        if (season) updateSeasonCount(season);
+      }
+      function toggleSeason(btn) {
+        const block = btn.closest(".season-block");
+        block.classList.toggle("season-collapsed");
+        btn.innerHTML = block.classList.contains("season-collapsed")
+          ? '<i class="fa-solid fa-chevron-down"></i>'
+          : '<i class="fa-solid fa-chevron-up"></i>';
+      }
+      function updateSeasonCount(seasonBlock) {
+        if (!seasonBlock) return;
+        const n = seasonBlock.querySelectorAll(".episode-block").length;
+        const label = seasonBlock.querySelector(".season-eps-count");
+        if (label) label.textContent = `${n} episode${n === 1 ? "" : "s"}`;
+        const titleEl = seasonBlock.querySelector(".season-title-text");
+        const num = seasonBlock.querySelector(".season-number").value;
+        if (titleEl) titleEl.textContent = `Season ${num || ""}`;
+      }
+      function addCastMember(castData, containerId) {
+        const container = document.getElementById(containerId);
+        const castItem = document.createElement("div");
+        castItem.className = "cast-item";
+        const safe = (v) => (v || "").replace(/"/g, "&quot;");
+        castItem.innerHTML = `
+          <img class="cast-preview" src="${safe(castData.photo) || "https://via.placeholder.com/70x70?text=N/A"}" onerror="this.src='https://via.placeholder.com/70x70?text=N/A'">
+          <input type="text" class="cast-name" placeholder="Actor Name" value="${safe(castData.name)}">
+          <input type="text" class="cast-photo" placeholder="Photo URL" value="${safe(castData.photo)}"
+                 oninput="this.closest('.cast-item').querySelector('.cast-preview').src = this.value || 'https://via.placeholder.com/70x70?text=N/A'">
+          <button type="button" class="remove-btn" onclick="removeElement(this)">&times;</button>`;
+        container.appendChild(castItem);
+      }
+      function deleteData(type, id) {
+        if (confirm(`Are you sure you want to permanently delete this item?`)) {
+          database.ref(`${type}/${id}`).remove().then(() => showStatus("Item deleted!", "success")).catch((err) => showStatus("Delete failed", "error"));
+        }
+      }
+
+      function loadCategories() {
+        const listContainer = document.getElementById("category-list-container");
+        const movieCatWrapper = document.getElementById("movie-category-wrapper");
+        const seriesCatWrapper = document.getElementById("series-category-wrapper");
+        database.ref("categories").orderByChild("name").on("value", (snapshot) => {
+            if (listContainer) listContainer.innerHTML = "";
+            if (movieCatWrapper) movieCatWrapper.innerHTML = "";
+            if (seriesCatWrapper) seriesCatWrapper.innerHTML = "";
+            if (snapshot.numChildren() === 0) {
+              const noCatMsg = '<p style="color: var(--text-secondary); font-size: 12px;">No categories available.</p>';
+              if (movieCatWrapper) movieCatWrapper.innerHTML = noCatMsg;
+              if (seriesCatWrapper) seriesCatWrapper.innerHTML = noCatMsg;
+              return;
+            }
+            snapshot.forEach((childSnapshot) => {
+              const category = childSnapshot.val();
+              const id = childSnapshot.key;
+              if (listContainer) {
+                const item = document.createElement("div");
+                item.className = "category-item";
+                item.id = `cat-item-${id}`;
+                item.innerHTML = `<div class="view-mode"><span class="category-name-text">${category.name}</span><div class="actions"><button class="btn-icon" onclick="toggleCategoryEdit('${id}', true)"><i class="fa-solid fa-pencil"></i></button><button class="btn-icon" onclick="deleteCategory('${id}')"><i class="fa-solid fa-trash"></i></button></div></div><div class="edit-mode" style="display: none;"><input type="text" class="category-edit-input" value="${category.name}"><div class="actions"><button class="btn-icon" onclick="updateCategoryName('${id}')"><i class="fa-solid fa-check"></i></button><button class="btn-icon" onclick="toggleCategoryEdit('${id}', false)"><i class="fa-solid fa-times"></i></button></div></div>`;
+                listContainer.appendChild(item);
+              }
+              const createCheckbox = (name) => {
+                const label = document.createElement("label");
+                label.className = "category-checkbox-item";
+                label.innerHTML = `<input type="checkbox" value="${name}"> ${name}`;
+                return label;
+              };
+              if (movieCatWrapper) movieCatWrapper.appendChild(createCheckbox(category.name));
+              if (seriesCatWrapper) seriesCatWrapper.appendChild(createCheckbox(category.name));
+            });
+          });
+      }
+
+      async function handleSaveCategory() {
+        const btn = document.getElementById("save-category-btn");
+        const nameInput = document.getElementById("category-name");
+        const name = nameInput.value.trim();
+        if (!name) return showStatus("Category name cannot be empty.", "error");
+        await withBusy(btn, async () => {
+          // Reject a duplicate name (case-insensitive) so the app does not render
+          // two identical category rows.
+          const existing = await database.ref("categories").once("value");
+          let dupe = false;
+          existing.forEach((c) => {
+            if (((c.val() || {}).name || "").trim().toLowerCase() === name.toLowerCase()) dupe = true;
+          });
+          if (dupe) throw new Error(`"${name}" already exists.`);
+          await database.ref("categories").push({ name: name, timestamp: Date.now() });
+          showStatus("Category saved!", "success");
+          nameInput.value = "";
+        }, "Could not save category");
+      }
+      async function deleteCategory(id) {
+        if (!confirm("Delete this category? Movies keep their own category tags and are never deleted.")) return;
+        try {
+          await database.ref(`categories/${id}`).remove();
+          showStatus("Category deleted!", "success");
+        } catch (e) {
+          showStatus("Delete failed: " + (e && e.message ? e.message : e), "error");
+        }
+      }
+      function toggleCategoryEdit(id, isEditing) {
+        const item = document.getElementById(`cat-item-${id}`);
+        item.querySelector(".view-mode").style.display = isEditing ? "none" : "flex";
+        item.querySelector(".edit-mode").style.display = isEditing ? "flex" : "none";
+      }
+      async function updateCategoryName(id) {
+        const newName = document.getElementById(`cat-item-${id}`).querySelector(".edit-mode input").value.trim();
+        if (!newName) return showStatus("Category name cannot be empty.", "error");
+        try {
+          await database.ref(`categories/${id}`).update({ name: newName });
+          showStatus("Category updated!", "success");
+          toggleCategoryEdit(id, false);
+        } catch (e) {
+          showStatus("Update failed: " + (e && e.message ? e.message : e), "error");
+        }
+      }
+
+      async function searchTmdb(type) {
+        const query = document.getElementById(`${type === "movie" ? "movie" : "series"}-tmdb-search`).value.trim();
+        if (!query) return showStatus("Enter name or ID", "error");
+         if (/^\d+$/.test(query)) { fetchDetailsById(type, query); return; }
+         try {
+           const res = await fetch(`${TMDB_PROXY_BASE}/search/${type}?query=${encodeURIComponent(query)}`, { credentials: "include" });
+          // A non-2xx must not be parsed as a result set (Phase 13).
+          if (!res.ok) {
+            return showStatus(`TMDB search failed (HTTP ${res.status}). Check the API key or your connection.`, "error");
+          }
+          const data = await res.json();
+          if (data.results && data.results.length > 0) displaySearchResults(type, data.results);
+          else showStatus("No results.", "error");
+        } catch (error) {
+          showStatus("TMDB search failed: " + (error && error.message ? error.message : error), "error");
+        }
+      }
+      function displaySearchResults(type, results) {
+        const container = document.getElementById("search-results-container");
+        container.innerHTML = "";
+        results.slice(0, 10).forEach((item) => {
+          const resultItem = document.createElement("div");
+          resultItem.className = "search-result-item";
+          resultItem.onclick = () => selectTmdbResult(type, item.id);
+          const poster = item.poster_path ? `https://image.tmdb.org/t/p/w92${item.poster_path}` : "";
+          const year = (type === "movie" ? item.release_date : item.first_air_date) || "";
+          resultItem.innerHTML = `<img src="${escapeAttr(poster)}" onerror="this.style.visibility='hidden'"><div class="search-result-info"><h4>${escapeHtml(type === "movie" ? item.title : item.name)}</h4><p>${escapeHtml(year.split("-")[0])}</p></div>`;
+          container.appendChild(resultItem);
+        });
+        document.getElementById("search-modal").style.display = "flex";
+      }
+      function closeSearchModal() { document.getElementById("search-modal").style.display = "none"; }
+      function selectTmdbResult(type, id) { closeSearchModal(); fetchDetailsById(type, id); }
+      async function fetchDetailsById(type, id) {
+        try {
+           const res = await fetch(`${TMDB_PROXY_BASE}/${type}/${id}?append_to_response=credits`, { credentials: "include" });
+          if (!res.ok) {
+            return showStatus(`TMDB fetch failed (HTTP ${res.status}).`, "error");
+          }
+          const data = await res.json();
+          if (type === "movie") populateMovieForm(data); else populateSeriesForm(data);
+          showStatus("Details fetched!", "success");
+        } catch (error) {
+          showStatus("TMDB fetch failed: " + (error && error.message ? error.message : error), "error");
+        }
+      }
+
+      /**
+       * TMDB import fills only fields the admin left EMPTY, so re-importing never
+       * silently overwrites manually corrected titles, posters or storylines
+       * (Phase 13). Pass force=true to deliberately replace.
+       */
+      function fillIfEmpty(id, value, force) {
+        const el = document.getElementById(id);
+        if (!el || value == null || value === "") return;
+        if (force || !el.value.trim()) el.value = value;
+      }
+
+      function populateMovieForm(data) {
+        fillIfEmpty("movie-title", data.title, false);
+        fillIfEmpty("movie-poster", data.poster_path ? `https://image.tmdb.org/t/p/w500${data.poster_path}` : "", false);
+        fillIfEmpty("movie-backdrop", data.backdrop_path ? `https://image.tmdb.org/t/p/w1280${data.backdrop_path}` : "", false);
+        fillIfEmpty("movie-year", (data.release_date || "").split("-")[0], false);
+        fillIfEmpty("movie-rating", data.vote_average ? data.vote_average.toFixed(1) : "", false);
+        fillIfEmpty("movie-storyline", data.overview, false);
+        const director = (data.credits && data.credits.crew || []).find((c) => c.job === "Director");
+        if (director) fillIfEmpty("movie-director", director.name, false);
+        // Genres ADD to the current selection instead of replacing it.
+        const genres = (data.genres || []).map((g) => g.name.toLowerCase());
+        document.querySelectorAll('#movie-category-wrapper input[type="checkbox"]').forEach((cb) => {
+          if (genres.includes(cb.value.toLowerCase())) cb.checked = true;
+        });
+        // Cast is only auto-filled when the admin has not entered any.
+        const castCont = document.getElementById("movie-cast-container");
+        if (castCont && castCont.children.length === 0) {
+          ((data.credits && data.credits.cast) || []).slice(0, 12).forEach((actor) =>
+            addCastMember({ name: actor.name, photo: actor.profile_path ? `https://image.tmdb.org/t/p/w185${actor.profile_path}` : "" }, "movie-cast-container")
+          );
+        }
+      }
+      let currentTmdbSeries = null;
+
+      function renderTmdbSeasonInfo() {
+        const box = document.getElementById("series-tmdb-info");
+        const btn = document.getElementById("tmdb-load-eps-btn");
+        if (!box) return;
+        if (!currentTmdbSeries) {
+          box.style.display = "none";
+          if (btn) btn.disabled = false;
+          return;
+        }
+        const seasons = currentTmdbSeries.seasons.length;
+        const eps = currentTmdbSeries.seasons.reduce((t, s) => t + (s.episode_count || 0), 0);
+        box.style.display = "block";
+        box.innerHTML = `<i class="fa-solid fa-circle-info"></i> TMDB pe <b>${seasons} Season</b> aur <b>${eps} Episodes</b> mile hain. "TMDB se Sare Episodes Load Karo" button Seasons aur episodes automatically load ho rahe hain.`;
+      }
+
+      async function loadAllEpisodesFromTmdb() {
+        if (!currentTmdbSeries) return showStatus("Pehle upar TMDB se series search karo.", "error");
+        const btn = document.getElementById("tmdb-load-eps-btn");
+        const container = document.getElementById("series-seasons-container");
+        // Never silently discard episodes the admin already typed links into.
+        if (container.querySelector(".episode-block") &&
+            !confirm("Replace the current seasons/episodes with TMDB data? Any stream links you typed will be lost.")) {
+          return;
+        }
+        btn.disabled = true;
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Episodes load ho rahe hain...';
+        try {
+          container.innerHTML = "";
+          let total = 0;
+          const done = { n: 0 };
+          const totalSeasons = currentTmdbSeries.seasons.length;
+          const results = await Promise.all(
+            currentTmdbSeries.seasons.map(async (season) => {
+               const res = await fetch(`${TMDB_PROXY_BASE}/tv/${currentTmdbSeries.id}/season/${season.season_number}`, { credentials: "include" });
+              if (!res.ok) throw new Error(`Season ${season.season_number}: HTTP ${res.status}`);
+              const sData = await res.json();
+              done.n++;
+              btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Season ${done.n}/${totalSeasons} load ho raha hai...`;
+              return { season, sData };
+            })
+          );
+          results.sort((a, b) => a.season.season_number - b.season.season_number);
+          for (const { season, sData } of results) {
+            if (!sData.episodes || !sData.episodes.length) continue;
+            const seasonBlock = addSeason(season.season_number);
+            const epsContainer = seasonBlock.querySelector(".episodes-container");
+            sData.episodes.forEach((ep) => {
+              addEpisode(epsContainer, {
+                episode: ep.episode_number,
+                title: ep.name || `Episode ${ep.episode_number}`,
+                thumbnail: ep.still_path
+                  ? `https://image.tmdb.org/t/p/w500${ep.still_path}`
+                  : currentTmdbSeries.backdrop || "",
+                link: "",
+              });
+              total++;
+            });
+            updateSeasonCount(seasonBlock);
+          }
+          showStatus(`${total} episodes TMDB se load ho gaye!`, "success");
+        } catch (e) {
+          showStatus("Episodes load nahi ho paye: " + (e && e.message ? e.message : e), "error");
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = originalHtml;
+        }
+      }
+
+      function populateSeriesForm(data) {
+        currentTmdbSeries = {
+          id: data.id,
+          backdrop: data.backdrop_path ? `https://image.tmdb.org/t/p/w780${data.backdrop_path}` : "",
+          seasons: (data.seasons || []).filter((s) => s.season_number > 0 && s.episode_count > 0),
+        };
+        renderTmdbSeasonInfo();
+        fillIfEmpty("series-title", data.name, false);
+        fillIfEmpty("series-poster", data.poster_path ? `https://image.tmdb.org/t/p/w500${data.poster_path}` : "", false);
+        fillIfEmpty("series-backdrop", data.backdrop_path ? `https://image.tmdb.org/t/p/w1280${data.backdrop_path}` : "", false);
+        fillIfEmpty("series-year", (data.first_air_date || "").split("-")[0], false);
+        fillIfEmpty("series-rating", data.vote_average ? data.vote_average.toFixed(1) : "", false);
+        fillIfEmpty("series-storyline", data.overview, false);
+        const genres = (data.genres || []).map((g) => g.name.toLowerCase());
+        document.querySelectorAll('#series-category-wrapper input[type="checkbox"]').forEach((cb) => {
+          if (genres.includes(cb.value.toLowerCase())) cb.checked = true;
+        });
+        const castCont = document.getElementById("series-cast-container");
+        if (castCont && castCont.children.length === 0) {
+          ((data.credits && data.credits.cast) || []).slice(0, 12).forEach((actor) =>
+            addCastMember({ name: actor.name, photo: actor.profile_path ? `https://image.tmdb.org/t/p/w185${actor.profile_path}` : "" }, "series-cast-container")
+          );
+        }
+        // Auto-load episodes only for a fresh form; editing an existing series must
+        // never wipe the episodes (and their links) already stored in Firebase.
+        const isEditing = !!document.getElementById("series-edit-id").value;
+        const hasEpisodes = !!document.getElementById("series-seasons-container").querySelector(".episode-block");
+        if (currentTmdbSeries.seasons.length && !isEditing && !hasEpisodes) loadAllEpisodesFromTmdb();
+      }
+
+      function loadUsers() {
+        const body = document.getElementById("user-list-body");
+        database.ref("users").on("value", (snapshot) => {
+          body.innerHTML = "";
+          document.getElementById("total-users-stat").textContent = snapshot.numChildren();
+          snapshot.forEach((child) => {
+            const u = child.val();
+            const id = child.key;
+            const tr = document.createElement("tr");
+            if (u.isBanned) tr.classList.add("banned-row");
+            tr.innerHTML = `<td><div style="display:flex; align-items:center; gap:10px;"><div class="user-avatar">${u.displayName?.charAt(0).toUpperCase()}</div><span>${u.displayName}</span></div></td><td>${u.email}</td><td style="font-size:12px;">${id}</td><td>${u.isBanned ? '<span style="color:#c62828;">Banned</span>' : '<span style="color:#2e7d32;">Active</span>'}</td><td><button class="btn-sm ${u.isBanned ? 'unban-btn' : 'ban-btn'}" onclick="toggleUserBan('${id}', ${u.isBanned})">${u.isBanned ? 'Unban' : 'Ban'}</button></td>`;
+            body.appendChild(tr);
+          });
+        });
+      }
+      function toggleUserBan(uid, status) {
+        if (confirm(`Are you sure you want to ${status ? "Unban" : "Ban"} this user?`)) {
+          database.ref(`users/${uid}/isBanned`).set(!status).then(() => showStatus("User status updated!", "success"));
+        }
+      }
+
+      function toggleEmailTarget(show) { document.getElementById("email-target-container").style.display = show ? "block" : "none"; }
+      function searchMovieForNotif() {
+        const query = document.getElementById("notif-movie-search").value.toLowerCase();
+        const container = document.getElementById("notif-movie-search-results");
+        container.innerHTML = "";
+        if (query.length < 2) return;
+        const res = allMoviesData.filter(m => m.title.toLowerCase().includes(query)).slice(0, 5);
+        res.forEach(m => {
+          const div = document.createElement("div");
+          div.className = "search-result-item";
+          div.onclick = () => selectMovieForNotif(m);
+          div.innerHTML = `<img src="${m.poster}"><div><h4>${m.title}</h4><p>${m.year}</p></div>`;
+          container.appendChild(div);
+        });
+      }
+      function selectMovieForNotif(m) {
+        document.getElementById("notif-movie-id").value = m.id;
+        document.getElementById("notif-movie-poster").value = m.poster;
+        document.getElementById("notif-movie-preview").innerHTML = `<img src="${m.poster}"><div><h4>${m.title}</h4><p>Attached</p></div>`;
+        document.getElementById("notif-movie-preview").style.display = "flex";
+        document.getElementById("notif-movie-search").value = m.title;
+        document.getElementById("notif-movie-search-results").innerHTML = "";
+        if (!document.getElementById("notif-image-url").value.trim() && m.poster) {
+          document.getElementById("notif-image-url").value = m.poster;
+          updateNotifImagePreview(m.poster);
+        }
+      }
+      function updateNotifImagePreview(url) {
+        const box = document.getElementById("notif-image-preview-box");
+        const img = document.getElementById("notif-image-preview");
+        if (url && url.trim()) { img.src = url.trim(); box.style.display = "flex"; }
+        else box.style.display = "none";
+      }
+      function clearNotifImage() {
+        document.getElementById("notif-image-url").value = "";
+        document.getElementById("notif-image-file").value = "";
+        document.getElementById("notif-image-preview-box").style.display = "none";
+      }
+      function handleNotifImageFile(input) {
+        const file = input.files && input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const image = new Image();
+          image.onload = () => {
+            const max = 400;
+            let { width: w, height: h } = image;
+            if (w > max || h > max) { const r = Math.min(max / w, max / h); w = Math.round(w * r); h = Math.round(h * r); }
+            const canvas = document.createElement("canvas");
+            canvas.width = w; canvas.height = h;
+            canvas.getContext("2d").drawImage(image, 0, 0, w, h);
+            const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+            document.getElementById("notif-image-url").value = dataUrl;
+            updateNotifImagePreview(dataUrl);
+            document.getElementById("notif-image-hint").textContent = "Gallery photo ready (" + Math.round(dataUrl.length / 1024) + " KB)";
+          };
+          image.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+      /**
+       * Writes one notification to the `notifications/` history path.
+       *
+       * IMPORTANT — this is a DATABASE record, not a push notification. The app
+       * shows these in its in-app notification list. An actual FCM push requires a
+       * server credential which must NEVER live in this file; a Cloud Function
+       * triggered by writes to this path performs the send (see
+       * firebase-rules/README-notifications.md).
+       *
+       * Returns the push promise so callers can await and report real errors.
+       */
+      function pushNotification(fields) {
+        const notif = Object.assign({ timestamp: Date.now() }, fields);
+        // `pushed:false` lets the Cloud Function claim records it has not sent yet
+        // and prevents duplicate delivery on retry.
+        notif.pushed = false;
+        return database.ref("notifications").push(notif);
+      }
+
+      async function handleSendNotification() {
+        const btn = document.getElementById("send-notif-btn");
+        const title = document.getElementById("notif-title").value.trim();
+        const message = document.getElementById("notif-message").value.trim();
+        if (!title) return showStatus("Notification title is required.", "error");
+        if (!message) return showStatus("Notification message is required.", "error");
+
+        const image = document.getElementById("notif-image-url").value.trim();
+        const target = document.querySelector('input[name="target"]:checked').value;
+
+        const notif = {
+          title: title,
+          message: message,
+          icon: document.getElementById("notif-icon").value,
+          // Written under BOTH keys: older app builds read `image`, the current
+          // model reads `imageUrl`. Keeping both preserves old + new clients.
+          image: image,
+          imageUrl: image,
+          movieId: document.getElementById("notif-movie-id").value,
+          moviePoster: document.getElementById("notif-movie-poster").value,
+          target: target,
+        };
+
+        if (target === "specific") {
+          const emails = document.getElementById("notif-emails").value.split(",").map(e => e.trim()).filter(Boolean);
+          if (emails.length === 0) return showStatus("Enter at least one email (or UID).", "error");
+          notif.targetEmails = emails;
+        }
+
+        // Await the write, then clear the form. `location.reload()` used to fire
+        // before the write settled, so a failure was reported as success.
+        await withBusy(btn, async () => {
+          await pushNotification(notif);
+          showStatus("Notification queued for all matching users!", "success");
+          document.getElementById("notif-title").value = "";
+          document.getElementById("notif-message").value = "";
+          document.getElementById("notif-emails").value = "";
+          document.getElementById("notif-movie-id").value = "";
+          document.getElementById("notif-movie-poster").value = "";
+          document.getElementById("notif-movie-search").value = "";
+          document.getElementById("notif-movie-preview").style.display = "none";
+          clearNotifImage();
+        }, "Could not send notification");
+      }
+
+      function loadSentNotifications() {
+        const list = document.getElementById("sent-notifications-list");
+        if (!list) return;
+        database.ref("notifications").on("value", (snapshot) => {
+          list.innerHTML = "";
+          if (!snapshot.exists()) {
+            list.innerHTML = `<p style="color:var(--text-secondary); text-align:center; padding:20px;">Koi notification bheji hui nahi hai.</p>`;
+            return;
+          }
+          const items = [];
+          snapshot.forEach(child => items.push({ key: child.key, ...child.val() }));
+          items.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+          items.forEach(n => {
+            const imgHtml = (n.image || n.imageUrl) ? `<img src="${n.image || n.imageUrl}" alt="" class="notif-thumb">` : "";
+            const targetTxt = n.target === "specific" ? "Specific Users" : "All Users";
+            const card = document.createElement("div");
+            card.className = "sent-notif-card";
+            card.innerHTML = `
+              ${imgHtml}
+              <div class="sent-notif-info">
+                <div class="sent-notif-title"><i class="fa-solid ${n.icon || 'fa-bell'}"></i> ${escapeHtml(n.title || "")}</div>
+                <div class="sent-notif-msg">${escapeHtml(n.message || "")}</div>
+                <div class="sent-notif-meta">${n.timestamp ? new Date(n.timestamp).toLocaleString() : ""} • ${targetTxt}</div>
+              </div>
+              <button class="btn-icon delete-btn" title="Delete" onclick="deleteNotification('${n.key}')"><i class="fa-solid fa-trash"></i></button>`;
+            list.appendChild(card);
+          });
+        });
+      }
+      function deleteNotification(key) {
+        if (confirm("Yeh notification delete kar dein?")) {
+          database.ref("notifications/" + key).remove().then(() => showStatus("Notification deleted!", "success"));
+        }
+      }
+      function escapeHtml(str) {
+        const d = document.createElement("div");
+        d.textContent = String(str);
+        return d.innerHTML;
+      }
+
+      function loadMovieRequests() {
+        const body = document.getElementById("request-list-body");
+        database.ref("movie_requests").on("value", (snapshot) => {
+          body.innerHTML = "";
+          const count = snapshot.numChildren();
+          document.getElementById("requests-badge").textContent = count;
+          document.getElementById("requests-badge").style.display = count > 0 ? "flex" : "none";
+          snapshot.forEach(child => {
+            const r = child.val();
+            body.prepend(document.createRange().createContextualFragment(`<tr><td>${r.movieName}</td><td>${r.movieYear}</td><td>${r.requestedBy}</td><td>${new Date(r.timestamp).toLocaleDateString()}</td><td><button class="btn-sm" onclick="completeRequest('${child.key}', '${r.requestedBy}', '${r.movieName}')">Done</button></td></tr>`));
+          });
+        });
+      }
+      function completeRequest(id, email, name) {
+        if (confirm(`Notify ${email}?`)) {
+          database.ref("notifications").push({ title: "Request Added", message: `"${name}" is now available.`, icon: "fa-check-circle", target: "specific", targetEmails: [email], timestamp: Date.now() }).then(() => database.ref("movie_requests/" + id).remove());
+        }
+      }
+
+      function loadAvatars() {
+        database.ref("app_settings/avatars").on("value", (snapshot) => {
+          ['male', 'female'].forEach(g => {
+            const grid = document.getElementById(`${g}-avatars-grid`);
+            grid.innerHTML = "";
+            const avs = snapshot.val()?.[g] || {};
+            Object.keys(avs).forEach(k => {
+              const div = document.createElement("div"); div.className = "avatar-card";
+              div.innerHTML = `<img src="${avs[k]}"><button class="btn-icon delete-btn" onclick="deleteAvatar('${g}', '${k}')"><i class="fa-solid fa-trash"></i></button>`;
+              grid.appendChild(div);
+            });
+          });
+        });
+      }
+      function addAvatar(g) {
+        const url = document.getElementById(`${g}-avatar-url`).value.trim();
+        if (url) database.ref(`app_settings/avatars/${g}`).push(url).then(() => { showStatus("Added!", "success"); document.getElementById(`${g}-avatar-url`).value = ""; });
+      }
+      function deleteAvatar(g, k) { database.ref(`app_settings/avatars/${g}/${k}`).remove(); }
+
+      function loadMaintenanceStatus() {
+        database.ref("maintenance").on("value", (snapshot) => {
+          const s = snapshot.val() || {};
+          document.getElementById("maintenance-toggle").checked = s.enabled || false;
+          document.getElementById("maintenance-message").value = s.message || "";
+          document.getElementById("maintenance-status-text").textContent = s.enabled ? "App is IN MAINTENANCE" : "App is LIVE";
+        });
+      }
+      function handleSaveMaintenance() {
+        database.ref("maintenance").set({ enabled: document.getElementById("maintenance-toggle").checked, message: document.getElementById("maintenance-message").value.trim() }).then(() => showStatus("Saved!", "success"));
+      }
+
+      function loadAppControlSettings() {
+        database.ref("app_settings/version").on("value", s => {
+          const d = s.val() || {};
+          document.getElementById("app-ver-code").value = d.versionCode || "";
+          document.getElementById("app-ver-name").value = d.versionName || "";
+          document.getElementById("app-force-update").checked = d.forceUpdate || false;
+          document.getElementById("app-apk-url").value = d.apkUrl || "";
+          document.getElementById("app-changelog").value = d.changelog || "";
+        });
+      }
+      function saveAppControlSettings() {
+        database.ref("app_settings/version").set({ versionCode: parseInt(document.getElementById("app-ver-code").value), versionName: document.getElementById("app-ver-name").value, forceUpdate: document.getElementById("app-force-update").checked, apkUrl: document.getElementById("app-apk-url").value, changelog: document.getElementById("app-changelog").value }).then(() => showStatus("Updated!", "success"));
+      }
+
+      async function savePlan() {
+        const btn = document.getElementById("save-plan-btn");
+        const name = document.getElementById("plan-name").value.trim();
+        const price = document.getElementById("plan-price").value.trim();
+        const days = parseInt(document.getElementById("plan-days").value, 10);
+        const devices = parseInt(document.getElementById("plan-devices").value, 10);
+        if (!name) return showStatus("Plan name is required.", "error");
+        if (!Number.isFinite(days) || days <= 0) return showStatus("Enter a valid number of days.", "error");
+        if (!Number.isFinite(devices) || devices <= 0) return showStatus("Enter a valid device limit.", "error");
+        const p = { name, price, days, devices, description: document.getElementById("plan-desc").value.trim(), timestamp: Date.now() };
+        await withBusy(btn, async () => {
+          await database.ref("plans").push(p);
+          showStatus("Plan added!", "success");
+          document.getElementById("plan-name").value = "";
+          document.getElementById("plan-price").value = "";
+          document.getElementById("plan-days").value = "";
+          document.getElementById("plan-devices").value = "";
+          document.getElementById("plan-desc").value = "";
+        }, "Could not save plan");
+      }
+      function loadPlans() {
+        database.ref("plans").on("value", s => {
+          const c = document.getElementById("plans-list-container");
+          const sel = document.getElementById("manual-plan-select");
+          c.innerHTML = "";
+          // Rebuild the manual-premium plan picker from the same data (Phase 6).
+          if (sel) sel.innerHTML = '<option value="">-- custom (set fields below) --</option>';
+          if (!s.exists()) {
+            c.innerHTML = '<p style="color:var(--text-secondary);">No plans yet. Add one above.</p>';
+            return;
+          }
+          s.forEach(child => {
+            const p = child.val() || {};
+            const days = parseInt(p.days, 10) || 0;
+            const devices = parseInt(p.devices, 10) || 1;
+            const card = document.createElement("div");
+            card.className = "plan-card";
+            card.innerHTML = `<h3>${escapeHtml(p.name || "Unnamed")}</h3><div class="price">${escapeHtml(p.price || "")}</div><div class="details"><span>${days} Days</span><span>${devices} Device${devices === 1 ? "" : "s"}</span></div><button class="btn-icon" style="position:absolute; top:10px; right:10px;" onclick="deleteData('plans', '${child.key}')"><i class="fa-solid fa-trash"></i></button>`;
+            c.appendChild(card);
+            if (sel) {
+              const opt = document.createElement("option");
+              opt.value = child.key;
+              opt.textContent = `${p.name || "Unnamed"} — ${days}d, ${devices} device(s)`;
+              opt.dataset.days = days;
+              opt.dataset.devices = devices;
+              opt.dataset.name = p.name || "Admin Grant";
+              sel.appendChild(opt);
+            }
+          });
+        }, (err) => showStatus("Could not load plans: " + err.message, "error"));
+      }
+
+      function loadPremiumRequests() {
+        database.ref("premium_requests").on("value", s => {
+          const b = document.getElementById("premium-requests-body"); b.innerHTML = "";
+          let count = 0;
+          const rows = [];
+          s.forEach(child => {
+            const r = child.val() || {};
+            // Only PENDING requests are actionable. Approved/rejected ones are
+            // already resolved and must not be re-processed (Phase 7).
+            if ((r.status || "pending") === "pending") {
+              count++;
+              rows.push({ key: child.key, r: r });
+            }
+          });
+          if (rows.length === 0) {
+            b.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-secondary); padding:18px;">No pending premium requests.</td></tr>`;
+          }
+          rows.sort((a, z) => (z.r.timestamp || 0) - (a.r.timestamp || 0));
+          rows.forEach(({ key, r }) => {
+            const tr = document.createElement("tr");
+            const days = parseInt(r.planDays, 10) || 0;
+            const limit = parseInt(r.deviceLimit, 10) || 1;
+            const tdUser = document.createElement("td"); tdUser.textContent = r.userEmail || r.userId || "";
+            const tdPlan = document.createElement("td"); tdPlan.textContent = `${r.planName || ""} (${days}d • ${limit} device${limit === 1 ? "" : "s"})`;
+            const tdUtr = document.createElement("td"); tdUtr.style.color = "var(--primary-color)"; tdUtr.style.fontWeight = "bold"; tdUtr.textContent = r.utr || "";
+            const tdDate = document.createElement("td"); tdDate.textContent = r.timestamp ? new Date(r.timestamp).toLocaleDateString() : "";
+            const tdAct = document.createElement("td");
+            const okBtn = document.createElement("button");
+            okBtn.className = "btn-sm"; okBtn.textContent = "Approve";
+            okBtn.onclick = () => approvePremium(key, r.userId, days, r.planName || "Premium", limit, r.planPrice || "");
+            const noBtn = document.createElement("button");
+            noBtn.className = "btn-sm ban-btn"; noBtn.style.marginLeft = "6px"; noBtn.textContent = "Reject";
+            noBtn.onclick = () => rejectPremium(key, r.userId);
+            tdAct.appendChild(okBtn); tdAct.appendChild(noBtn);
+            [tdUser, tdPlan, tdUtr, tdDate, tdAct].forEach((td) => tr.appendChild(td));
+            b.appendChild(tr);
+          });
+          document.getElementById("premium-badge").textContent = count;
+          document.getElementById("premium-badge").style.display = count > 0 ? "flex" : "none";
+        }, (err) => showStatus("Could not load premium requests: " + err.message, "error"));
+      }
+
+      /**
+       * Approves a request: writes the subscription, marks the request approved,
+       * and notifies the user — in that order, each awaited (Phase 7 / 11).
+       *
+       * Re-reads the request first and refuses if it is no longer pending, so a
+       * double-click or two admins cannot grant twice.
+       */
+      async function approvePremium(key, uid, days, name, limit, price) {
+        if (!uid) return showStatus("This request has no user id — cannot approve.", "error");
+        if (!Number.isFinite(days) || days <= 0) return showStatus("Request has an invalid duration.", "error");
+        if (!confirm(`Approve ${name} for ${days} days (${limit} device(s))?`)) return;
+        try {
+          const snap = await database.ref("premium_requests/" + key).once("value");
+          const cur = snap.val();
+          if (!cur) return showStatus("Request no longer exists.", "error");
+          if ((cur.status || "pending") !== "pending") {
+            return showStatus(`Already ${cur.status}. Nothing to do.`, "error");
+          }
+          const exp = Date.now() + days * 86400000;
+          await database.ref(`users/${uid}/subscription`).set({
+            isPremium: true,
+            planName: name,
+            expiryDate: exp,
+            deviceLimit: limit,
+            grantedAt: Date.now(),
+            source: "request",
+          });
+          await database.ref("premium_requests/" + key).update({
+            status: "approved",
+            reviewedAt: Date.now(),
+          });
+          // Notification is last: if it fails the subscription is still granted and
+          // the request data is not lost.
+          try {
+            await pushNotification({
+              title: "Premium Active",
+              message: `Your ${name} plan is now active. Enjoy VIP access!`,
+              icon: "fa-crown",
+              target: "specific",
+              targetEmails: [uid, cur.userEmail].filter(Boolean),
+            });
+          } catch (e) {
+            showStatus("Premium granted, but the notification failed: " + e.message, "error");
+            return;
+          }
+          showStatus("Premium approved and user notified!", "success");
+        } catch (e) {
+          showStatus("Approve failed: " + (e && e.message ? e.message : e), "error");
+        }
+      }
+
+      /** Rejects a request with an optional reason. Premium stays inactive. */
+      async function rejectPremium(key, uid) {
+        const reason = prompt("Rejection reason (optional, shown to the user):", "");
+        if (reason === null) return;
+        try {
+          const snap = await database.ref("premium_requests/" + key).once("value");
+          const cur = snap.val();
+          if (!cur) return showStatus("Request no longer exists.", "error");
+          if ((cur.status || "pending") !== "pending") {
+            return showStatus(`Already ${cur.status}. Nothing to do.`, "error");
+          }
+          // Deliberately does NOT touch users/{uid}/subscription — a rejected
+          // request must never grant or revoke anything.
+          await database.ref("premium_requests/" + key).update({
+            status: "rejected",
+            rejectReason: reason.trim(),
+            reviewedAt: Date.now(),
+          });
+          await pushNotification({
+            title: "Premium Request Rejected",
+            message: reason.trim() || "Your premium request could not be approved. Please contact support.",
+            icon: "fa-circle-xmark",
+            target: "specific",
+            targetEmails: [uid, cur.userEmail].filter(Boolean),
+          });
+          showStatus("Request rejected and user notified.", "success");
+        } catch (e) {
+          showStatus("Reject failed: " + (e && e.message ? e.message : e), "error");
+        }
+      }
+
+      /**
+       * Manual premium grant. Duration and device limit come from the form (or a
+       * selected plan) — nothing is hardcoded (Phase 6). The resulting record is
+       * identical in shape to a request-approved subscription.
+       */
+      async function handleManualPremium() {
+        const btn = document.getElementById("manual-premium-btn");
+        const uid = document.getElementById("manual-uid").value.trim();
+        const days = parseInt(document.getElementById("manual-days").value, 10);
+        const limit = parseInt(document.getElementById("manual-devices").value, 10);
+        const planName = document.getElementById("manual-plan-name").value.trim() || "Admin Grant";
+
+        if (!uid) return showStatus("User UID is required.", "error");
+        if (!Number.isFinite(days) || days <= 0) return showStatus("Enter a valid duration in days.", "error");
+        if (!Number.isFinite(limit) || limit <= 0) return showStatus("Enter a valid device limit.", "error");
+
+        await withBusy(btn, async () => {
+          // Confirm the user exists before writing, so a typo'd UID does not create
+          // an orphan subscription node.
+          const userSnap = await database.ref("users/" + uid).once("value");
+          if (!userSnap.exists()) {
+            throw new Error("No user with that UID. Copy it from the Users list.");
+          }
+          await database.ref(`users/${uid}/subscription`).set({
+            isPremium: true,
+            planName: planName,
+            expiryDate: Date.now() + days * 86400000,
+            deviceLimit: limit,
+            grantedAt: Date.now(),
+            source: "manual",
+          });
+          await pushNotification({
+            title: "Premium Activated",
+            message: `${planName} is now active on your account for ${days} days.`,
+            icon: "fa-crown",
+            target: "specific",
+            targetEmails: [uid, userSnap.val().email].filter(Boolean),
+          });
+          showStatus("Premium granted!", "success");
+          document.getElementById("manual-uid").value = "";
+        }, "Manual grant failed");
+      }
+
+      /** Fills the manual-premium form from an existing plan. */
+      function applyPlanToManualForm(selectEl) {
+        const opt = selectEl.options[selectEl.selectedIndex];
+        if (!opt || !opt.dataset.days) return;
+        document.getElementById("manual-days").value = opt.dataset.days;
+        document.getElementById("manual-devices").value = opt.dataset.devices;
+        document.getElementById("manual-plan-name").value = opt.dataset.name;
+      }
+
+      function loadRevenueAnalytics() {
+        database.ref("users").on("value", s => {
+          let vips = 0; const now = Date.now();
+          s.forEach(c => { if (c.val().subscription?.expiryDate > now) vips++; });
+          document.getElementById("total-vip-stat").textContent = vips;
+        });
+        database.ref("premium_requests").on("value", s => {
+          let rev = 0;
+          s.forEach(c => { if (c.val().status === "approved") rev += parseFloat(c.val().planPrice.replace(/[^0-9.]/g, "")) || 0; });
+          document.getElementById("total-revenue-stat").textContent = "₹" + rev.toFixed(2);
+        });
+      }
+
+      function savePaymentDetails() {
+        database.ref("app_settings/payment").set({ upiId: document.getElementById("payment-upi-id").value, qrCodeUrl: document.getElementById("payment-qr-code").value }).then(() => showStatus("Saved!", "success"));
+      }
+      function loadPaymentDetails() {
+        database.ref("app_settings/payment").on("value", s => {
+          const d = s.val() || {};
+          document.getElementById("payment-upi-id").value = d.upiId || "";
+          document.getElementById("payment-qr-code").value = d.qrCodeUrl || "";
+          if (d.qrCodeUrl) { document.getElementById("qr-preview-img").src = d.qrCodeUrl; document.getElementById("qr-preview").style.display = "block"; }
+        });
+      }
+
+      function clearAdForm() {
+        document.getElementById("ad-edit-id").value = "";
+        document.getElementById("ad-title").value = "";
+        document.getElementById("ad-type").value = "image";
+        document.getElementById("ad-media-url").value = "";
+        document.getElementById("ad-target-url").value = "";
+        document.getElementById("ad-duration").value = "";
+        document.getElementById("ad-is-active").checked = false;
+        const btn = document.getElementById("save-ad-btn");
+        if (btn) btn.textContent = "Save Ad";
+      }
+
+      async function handleSaveAd() {
+        const btn = document.getElementById("save-ad-btn");
+        const id = document.getElementById("ad-edit-id").value;
+        const title = document.getElementById("ad-title").value.trim();
+        const mediaUrl = document.getElementById("ad-media-url").value.trim();
+        const targetUrl = document.getElementById("ad-target-url").value.trim();
+        const duration = parseInt(document.getElementById("ad-duration").value, 10);
+
+        if (!title) return showStatus("Ad title is required.", "error");
+        if (!mediaUrl) return showStatus("Media URL is required.", "error");
+        if (!isValidUrl(mediaUrl)) return showStatus("Media URL is not a valid http(s) URL.", "error");
+        if (targetUrl && !isValidUrl(targetUrl)) return showStatus("Target URL is not a valid http(s) URL.", "error");
+        if (!Number.isFinite(duration) || duration < 0) return showStatus("Enter a valid duration in seconds.", "error");
+
+        const ad = {
+          title: title,
+          type: document.getElementById("ad-type").value,
+          mediaUrl: mediaUrl,
+          targetUrl: targetUrl,
+          duration: duration,
+          isActive: document.getElementById("ad-is-active").checked,
+          timestamp: Date.now(),
+        };
+
+        // Await the write; success is only reported once Firebase confirms (Phase 11).
+        await withBusy(btn, async () => {
+          if (id) {
+            await database.ref("ads/" + id).update(ad);
+            showStatus("Ad updated!", "success");
+          } else {
+            await database.ref("ads").push(ad);
+            showStatus("Ad saved!", "success");
+          }
+          clearAdForm();
+        }, "Could not save ad");
+      }
+
+      function loadAds() {
+        database.ref("ads").on("value", s => {
+          const c = document.getElementById("ads-grid-container");
+          c.innerHTML = "";
+          if (!s.exists()) {
+            c.innerHTML = '<p style="color:var(--text-secondary);">No ads yet.</p>';
+            return;
+          }
+          s.forEach(child => {
+            const ad = child.val() || {};
+            const preview = ad.type === "video"
+              ? `<video src="${escapeAttr(ad.mediaUrl)}" muted></video>`
+              : `<img src="${escapeAttr(ad.mediaUrl)}" onerror="this.style.visibility='hidden'">`;
+            const state = ad.isActive
+              ? '<span style="color:#2e7d32; font-size:12px;">● Active</span>'
+              : '<span style="color:#c62828; font-size:12px;">● Inactive</span>';
+            const card = document.createElement("div");
+            card.className = "ad-card";
+            card.innerHTML = `<div class="ad-preview">${preview}</div><div class="ad-content"><h4>${escapeHtml(ad.title || "Untitled")}</h4>${state} <span style="font-size:11px; color:var(--text-secondary);">${escapeHtml(String(ad.duration || 0))}s • ${escapeHtml(ad.type || "image")}</span></div><div class="ad-controls"><button onclick="editAd('${child.key}')">Edit</button><button onclick="deleteData('ads', '${child.key}')">Del</button></div>`;
+            c.appendChild(card);
+          });
+        }, (err) => showStatus("Could not load ads: " + err.message, "error"));
+      }
+
+      /** Loads EVERY ad field for editing — previously only title and media URL. */
+      async function editAd(k) {
+        try {
+          const s = await database.ref("ads/" + k).once("value");
+          const d = s.val();
+          if (!d) return showStatus("Ad not found (it may have been deleted).", "error");
+          document.getElementById("ad-edit-id").value = k;
+          document.getElementById("ad-title").value = d.title || "";
+          document.getElementById("ad-type").value = d.type || "image";
+          document.getElementById("ad-media-url").value = d.mediaUrl || "";
+          document.getElementById("ad-target-url").value = d.targetUrl || "";
+          document.getElementById("ad-duration").value = d.duration != null ? d.duration : "";
+          document.getElementById("ad-is-active").checked = !!d.isActive;
+          const btn = document.getElementById("save-ad-btn");
+          if (btn) btn.textContent = "Update Ad";
+          showView("manage-ads-view");
+          showStatus("Ad loaded for editing.", "success");
+        } catch (e) {
+          showStatus("Could not load ad: " + (e && e.message ? e.message : e), "error");
+        }
+      }
+    </script>
+  </body>
+</html>

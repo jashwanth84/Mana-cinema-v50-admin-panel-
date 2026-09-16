@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "584230665185",
+    "firebase_url": "https://booyahx-284ea-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "booyahx-284ea",
+    "storage_bucket": "booyahx-284ea.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:584230665185:android:a289d5f267d897f91030a0",
+        "android_client_info": {
+          "package_name": "com.BooyahX"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "584230665185-e92u0jl84ti03q4pbr2kea3g496g7bit.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.BooyahX",
+            "certificate_hash": "809c4b571364f7a4c22e43001498379e3d37ad10"
+          }
+        },
+        {
+          "client_id": "584230665185-3r5vm09sq8m9nd4slhg22u1vc0isfqbi.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAOZPbx8Wl9eo_2MNDhSS0pLED2X5RGkbo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "584230665185-3r5vm09sq8m9nd4slhg22u1vc0isfqbi.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
